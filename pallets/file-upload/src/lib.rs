@@ -14,7 +14,13 @@ pub mod pallet {
 
  //Check
  #[pallet::event]   // <-- Step 3. code block will replace this.
+
+ 
  #[pallet::error]   // <-- Step 4. code block will replace this.
+
+
  #[pallet::storage] // <-- Step 5. code block will replace this.
+
+ 
  #[pallet::call]    // <-- Step 6. code block will replace this.
 }
