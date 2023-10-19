@@ -5,6 +5,7 @@ members = [
     "pallets/template",
     "pallets/ocw",
     "pallets/user",
+    "pallets/store-words",
     "runtime",
 ]
 [profile.release]
