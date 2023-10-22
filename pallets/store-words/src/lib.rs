@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/reference/frame-pallets/>
+// use sp_runtime::offchain::{http,Duration,};
+
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
+
 	use super::*;
 	use frame_support::pallet_prelude::{*, DispatchResult};
 	use frame_system::pallet_prelude::{*, OriginFor};
@@ -19,7 +19,9 @@ pub mod pallet {
 	//Config
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
 	}
 
 	//Word Struct
@@ -45,12 +47,24 @@ pub mod pallet {
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+
+		// Error returned when fetching github info
+		HttpFetchingError,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn offchain_worker(_block_number: BlockNumberFor<T>) {
+
+		fn offchain_worker(block_number: BlockNumberFor<T>) {
+			
 			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
+			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
+
+			// match Self::fetch_word() {
+			// 	Ok(word) => log::info!("Word: {}", word),
+			// 	Err(e) => log::info!("Error: {:?}", e) 
+			// };
+
 		}
 	}
 
@@ -80,6 +94,36 @@ pub mod pallet {
 			Ok(())
 
 		}
-
 	}
+
+	// impl<T: Config> Pallet<T> {
+
+	// 	//Fetch word from the api
+	// 	fn fetch_word() -> Result<String, http::Error> {
+
+	// 		let deadline = sp_io::offchain::timestamp().add(Duration::from_millis(2_000));
+
+	// 		let request = http::Request::get("https://random-word-api.herokuapp.com/word");
+
+	// 		let pending = request.deadline(deadline).send().map_err(|_| http::Error::IoError)?;
+
+	// 		let response = pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+			
+	// 		if response.code != 200 {
+	// 			log::warn!("Unexpected status code: {}", response.code);
+	// 			return Err(http::Error::Unknown)
+	// 		}
+			
+	// 		let body = response.body().collect::<Vec<u8>>();
+
+	// 		let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+	// 				log::warn!("No UTF8 body");
+	// 				http::Error::Unknown
+	// 		})?;
+
+	// 		log::warn!("Word: {}", body_str);
+
+	// 		Ok(body_str.to_string())
+	// 	}
+	// }
 }
