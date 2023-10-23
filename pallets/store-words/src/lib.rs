@@ -1,5 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use sp_runtime::offchain::{http,Duration,};
+
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -96,8 +98,6 @@ pub mod pallet {
 			Ok(())
 
 		}
-<<<<<<< HEAD
-=======
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -132,6 +132,5 @@ pub mod pallet {
 
 			Ok(result)
 		}
->>>>>>> test_1
 	}
 }
