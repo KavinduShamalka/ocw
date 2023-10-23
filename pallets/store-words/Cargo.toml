@@ -44,7 +44,7 @@ std = [
 	"log/std",
 	"sp-std/std",
 	"sp-runtime/std",
-	# "sp-io/std",
+	"sp-io/std",
 	# "getrandom/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
