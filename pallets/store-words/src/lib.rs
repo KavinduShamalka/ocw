@@ -14,6 +14,8 @@ pub mod pallet {
 	use frame_support::sp_io::offchain;
 	use codec::alloc::string::ToString;
 	use sp_std::vec::Vec;
+	use sp_std::{collections::vec_deque::VecDeque, str};
+	// const WORD_VEC_LEN: usize = 10;
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
@@ -34,8 +36,13 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn something)]
+	#[pallet::getter(fn info)]
 	pub type WordSave<T> = StorageValue<_, Word>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn store)]
+	pub type WordStore<T> = StorageValue<_, VecDeque<String>, ValueQuery>;
+
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -66,7 +73,7 @@ pub mod pallet {
 
 			match Self::fetch_word() {
 				Ok(word) => log::info!("Word: {}", word),
-				Err(e) => log::info!("Error: {:?}", e) 
+				Err(e) => log::info!("Error: {:?}", e)
 			};
 
 		}
@@ -130,7 +137,19 @@ pub mod pallet {
 
 			let result = body_str.to_string();
 
+			// Self::saved_words(result.clone());
+
 			Ok(result)
 		}
+
+		// fn saved_words(words: String) {
+		// 	WordStore::<T>::mutate(|word_save| {
+		// 		if word_save.len() == WORD_VEC_LEN {
+		// 			 let _ = word_save.pop_front();
+		// 		}
+		// 		word_save.push_back(words);
+		// 		log::info!("Save words: {:?}", word_save);
+		// 	})
+		// }
 	}
 }
