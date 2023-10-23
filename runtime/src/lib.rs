@@ -49,6 +49,7 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 pub use pallet_user;
+pub use pallet_store_words;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -275,7 +276,13 @@ impl pallet_template::Config for Runtime {
 	type WeightInfo = pallet_template::weights::SubstrateWeight<Runtime>;
 }
 
+/// Configure the pallet-user in pallets/user.
 impl pallet_user::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+}
+
+/// Configure the pallet-store-words in pallets/store-words.
+impl pallet_store_words::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }
 
@@ -292,6 +299,7 @@ construct_runtime!(
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
 		User: pallet_user,
+		Storewords: pallet_store_words,
 	}
 );
 
