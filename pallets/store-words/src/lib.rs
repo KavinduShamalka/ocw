@@ -1,10 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-<<<<<<< HEAD
-=======
-use sp_runtime::offchain::{http,Duration,};
-
->>>>>>> test_1
 pub use pallet::*;
 
 #[frame_support::pallet]
