@@ -287,6 +287,7 @@ impl pallet_user::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }
 
+
 /// Configure the pallet-store-words in pallets/store-words.
 impl pallet_store_words::Config for Runtime {
 
@@ -295,6 +296,7 @@ impl pallet_store_words::Config for Runtime {
 	type AuthorityId = pallet_store_words::crypto::TestAuthId;
 
 	type RuntimeCall = RuntimeCall;
+
 }
 
 /// Configure the pallet-store-words in pallets/store-words.

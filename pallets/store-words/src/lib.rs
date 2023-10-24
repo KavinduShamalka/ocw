@@ -96,6 +96,8 @@ pub mod pallet {
 
 		/// Error returned when fetching github info
 		HttpFetchingError,
+
+		UnknownOffchainMux,
 	}
 
 	#[pallet::hooks]
@@ -104,11 +106,12 @@ pub mod pallet {
 		fn offchain_worker(block_number: BlockNumberFor<T>) {
 			
 			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
-			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
+			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number.clone());
 
-			let result = Self::fetch_word_and_send_signed();
-
-			log::info!("Result: {:?}", result);
+			match Self::fetch_word_and_send_signed() {
+				Ok(result) => log::info!("Word: {}", result),
+				Err(error) => log::info!("Error fetching word: {}", error),
+			}
 
 		}
 	}
@@ -171,13 +174,11 @@ pub mod pallet {
 
 			let result = body_str.to_string();
 
-			// Self::saved_words(result.clone());
-
 			Ok(result)
 		}
 
 
-		fn fetch_word_and_send_signed() -> Result<(), &'static str> {
+		fn fetch_word_and_send_signed() -> Result<String, &'static str> {
 
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
@@ -196,12 +197,12 @@ pub mod pallet {
 
 			for (acc, res) in &results {
 				match res {
-					Ok(()) => log::info!("[{:?}] Submitted word of {}", acc.id, word),
+					Ok(()) => log::info!("[{:?}] Submitted word of {}", acc.id, word.clone()),
 					Err(e) => log::error!("[{:?}] Failed to submit transaction: {:?}", acc.id, e),
 				}
 			}
 
-			Ok(())
+			Ok(word)
 		}
 
 	}
