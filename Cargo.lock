@@ -4445,6 +4445,7 @@ dependencies = [
  "sp-inherents",
  "sp-io",
  "sp-keyring",
+ "sp-keystore",
  "sp-runtime",
  "sp-timestamp",
  "substrate-build-script-utils",
@@ -4463,6 +4464,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
+ "log",
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
@@ -4794,11 +4796,13 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "log",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]

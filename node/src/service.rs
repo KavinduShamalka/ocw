@@ -11,6 +11,7 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use std::{sync::Arc, time::Duration};
+//use sc_keystore::LocalKeystore;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -126,7 +127,16 @@ pub fn new_partial(
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
 			compatibility_mode: Default::default(),
 		})?;
-
+		let keystore = keystore_container.keystore();
+		if config.offchain_worker.enabled {
+			//For pallet-store-words
+			sp_keystore::Keystore::sr25519_generate_new(
+				&*keystore,
+				node_template_runtime::pallet_store_words::KEY_TYPE,
+				Some("//Alice"),
+			).expect("Creating key with account Alice should succeed.");
+			
+		}
 	Ok(sc_service::PartialComponents {
 		client,
 		backend,
@@ -299,12 +309,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			protocol_name: grandpa_protocol_name,
 		};
 
-		// start the full GRANDPA voter
-		// NOTE: non-authorities could run the GRANDPA observer protocol, but at
-		// this point the full voter should provide better guarantees of block
-		// and vote data availability than the observer. The observer has not
-		// been tested extensively yet and having most nodes in a network run it
-		// could lead to finality stalls.
+		
 		let grandpa_config = sc_consensus_grandpa::GrandpaParams {
 			config: grandpa_config,
 			link: grandpa_link,

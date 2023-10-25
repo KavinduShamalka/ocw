@@ -1,108 +1,211 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// <https://docs.substrate.io/reference/frame-pallets/>
+use sp_runtime::offchain::{http,Duration,};
+
 pub use pallet::*;
 
-#[cfg(test)]
-mod mock;
+use sp_core::crypto::KeyTypeId;
 
-#[cfg(test)]
-mod tests;
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");
 
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-pub mod weights;
-pub use weights::*;
+pub mod crypto {
+	use super::KEY_TYPE;
+	use sp_core::sr25519::Signature as Sr25519Signature;
+	use sp_runtime::{
+		app_crypto::{app_crypto, sr25519},
+		traits::Verify,MultiSignature, MultiSigner,
+	};
+	app_crypto!(sr25519, KEY_TYPE);
+
+	pub struct TestAuthId;
+
+	// implemented for runtime
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+	type RuntimeAppPublic = Public;
+	type GenericSignature = sp_core::sr25519::Signature;
+	type GenericPublic = sp_core::sr25519::Public;
+	}
+
+	// implemented for mock runtime in test
+	impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
+		for TestAuthId
+	{
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
+}
 
 #[frame_support::pallet]
 pub mod pallet {
+
 	use super::*;
-	use frame_support::pallet_prelude::*;
-	use frame_system::pallet_prelude::*;
+	use frame_support::pallet_prelude::{*, DispatchResult};
+	use frame_system::pallet_prelude::{*, OriginFor};
+	use scale_info::prelude::string::String;
+	use frame_support::sp_io::offchain;
+	use codec::alloc::string::ToString;
+	use sp_std::vec::Vec;
+	use sp_std::{collections::vec_deque::VecDeque, str};
+	use frame_system::offchain::CreateSignedTransaction;
+	use frame_system::offchain::AppCrypto;
+	use frame_system::offchain::Signer;
+	use frame_system::offchain::SendSignedTransaction;
+	// const WORD_VEC_LEN: usize = 10;
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
+	//Config
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
-		/// Because this pallet emits events, it depends on the runtime's definition of an event.
+	pub trait Config: CreateSignedTransaction<Call<Self>> + frame_system::Config {
+
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-		/// Type representing the weight of this pallet
-		type WeightInfo: WeightInfo;
+		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 	}
 
-	// The pallet's runtime storage items.
-	// https://docs.substrate.io/main-docs/build/runtime-storage/
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	//Word Struct
+	#[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo)]
+	pub struct Word {
+		pub word: String
+	}
 
-	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/main-docs/build/events-errors/
+	#[pallet::storage]
+	#[pallet::getter(fn info)]
+	pub type WordSave<T> = StorageValue<_, Word>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn store)]
+	pub type WordStore<T> = StorageValue<_, VecDeque<String>, ValueQuery>;
+
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored { something: u32, who: T::AccountId },
+		WordStored { word: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
 		/// Error names should be descriptive.
+	
 		NoneValue,
 		/// Errors should have helpful documentation associated with them.
 		StorageOverflow,
+
+		/// Error returned when fetching github info
+		HttpFetchingError,
 	}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+
+		fn offchain_worker(block_number: BlockNumberFor<T>) {
+			
+			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
+			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
+
+			match Self::fetch_word() {
+				Ok(word) => Self::fetch_word_and_send_signed(word),
+				Err(_) => log::info!("Error fetching word"),
+			}
+
+
+		}
+	}
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
+
+		//Store word
 		#[pallet::call_index(0)]
-		#[pallet::weight(T::WeightInfo::do_something())]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://docs.substrate.io/main-docs/build/origins/
-			let who = ensure_signed(origin)?;
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn save_word(origin: OriginFor<T>, word: String) -> DispatchResult {
 
-			// Update storage.
-			<Something<T>>::put(something);
+			let sender = ensure_signed(origin)?;
 
-			// Emit an event.
-			Self::deposit_event(Event::SomethingStored { something, who });
-			// Return a successful DispatchResultWithPostInfo
+			let new_word = Word {
+				word,
+			};
+
+			<WordSave<T>>::put(new_word);
+
+			Self::deposit_event(Event::WordStored { word: sender });
+
+			log::info!("Hello from word Save.");
+
 			Ok(())
+
 		}
 
-		/// An example dispatchable that may throw a custom error.
-		#[pallet::call_index(1)]
-		#[pallet::weight(T::WeightInfo::cause_error())]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
-			let _who = ensure_signed(origin)?;
+		
+	}
 
-			// Read a value from storage.
-			match <Something<T>>::get() {
-				// Return an error if the value has not been set.
-				None => return Err(Error::<T>::NoneValue.into()),
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					<Something<T>>::put(new);
-					Ok(())
-				},
+	impl<T: Config> Pallet<T> {
+
+		//Fetch word from the api
+		fn fetch_word() -> Result<String, http::Error> {
+
+			//set deadline
+			let deadline = offchain::timestamp().add(Duration::from_millis(2_000));
+
+			//set get request
+			let request = http::Request::get("https://random-word-api.herokuapp.com/word");
+
+			let pending = request.deadline(deadline).send().map_err(|_| http::Error::IoError)?;
+
+			let response = pending.try_wait(deadline).map_err(|_| http::Error::DeadlineReached)??;
+			
+			//check response is successfull
+			if response.code != 200 {
+				log::warn!("Unexpected status code: {}", response.code);
+				return Err(http::Error::Unknown)
 			}
+			
+			let body = response.body().collect::<Vec<u8>>();
+
+			let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+					log::warn!("No UTF8 body");
+					http::Error::Unknown
+			})?;
+
+			let result = body_str.to_string();
+
+			// Self::saved_words(result.clone());
+
+			Ok(result)
 		}
+
+		/// A helper function to fetch the word and send signed transaction.
+		pub fn fetch_word_and_send_signed(word: String) {
+		
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			let results = signer.send_signed_transaction(|_account| {
+				Call::save_word { word: word.clone() }
+			});
+
+			for (acc, res) in &results {
+				match res {
+					Ok(()) => log::info!("{:?} Word fetch success: {}.", acc.id, word),
+					Err(e) => log::error!("{:?}: submit transaction failure. Reason: {:?}", acc.id, e),
+				}
+			}
+
+		}
+
+		
+
+		// fn saved_words(words: String) {
+		// 	WordStore::<T>::mutate(|word_save| {
+		// 		if word_save.len() == WORD_VEC_LEN {
+		// 			 let _ = word_save.pop_front();
+		// 		}
+		// 		word_save.push_back(words);
+		// 		log::info!("Save words: {:?}", word_save);
+		// 	})
+		// }
 	}
 }
