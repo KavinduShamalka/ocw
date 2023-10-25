@@ -111,8 +111,6 @@ pub mod pallet {
 				Ok(word) => Self::fetch_word_and_send_signed(word),
 				Err(_) => log::info!("Error fetching word"),
 			}
-
-
 		}
 	}
 
@@ -134,7 +132,7 @@ pub mod pallet {
 
 			Self::deposit_event(Event::WordStored { word: sender });
 
-			log::info!("Hello from word Save.");
+			log::info!("Hello from save_word.");
 
 			Ok(())
 
