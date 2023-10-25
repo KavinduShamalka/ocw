@@ -299,7 +299,7 @@ impl pallet_store_words::Config for Runtime {
 
 }
 
-/// Configure the pallet-store-words in pallets/store-words.
+/// Configure the pallet-storage in pallets/storage.
 impl pallet_storage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }

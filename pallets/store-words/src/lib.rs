@@ -59,9 +59,7 @@ pub mod pallet {
 
 		type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
 
-		type RuntimeCall: Parameter
-			+ UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin>
-			+ GetDispatchInfo;
+		type RuntimeCall: Parameter + UnfilteredDispatchable<RuntimeOrigin = Self::RuntimeOrigin> + GetDispatchInfo;
 	}
 
 	//Word Struct
@@ -112,7 +110,6 @@ pub mod pallet {
 				Ok(result) => log::info!("Word: {}", result),
 				Err(error) => log::info!("Error fetching word: {}", error),
 			}
-
 		}
 	}
 
