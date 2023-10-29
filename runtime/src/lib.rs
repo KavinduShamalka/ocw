@@ -52,6 +52,7 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_template;
 pub use pallet_user;
 pub use pallet_store_words;
+pub use pallet_bucket_feature;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -342,6 +343,11 @@ impl pallet_store_words::Config for Runtime {
 	type AuthorityId = pallet_store_words::crypto::TestAuthId;
 }
 
+impl pallet_bucket_feature::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AuthorityId = pallet_bucket_feature::crypto::TestAuthId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime {
@@ -356,6 +362,7 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		User: pallet_user,
 		StoreWord: pallet_store_words,
+		Bucketfeature: pallet_bucket_feature,
 	}
 );
 

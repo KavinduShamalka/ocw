@@ -6,7 +6,10 @@ members = [
     "pallets/ocw",
     "pallets/user",
     "pallets/store-words",
+    "pallets/bucket-feature",
     "runtime",
 ]
 [profile.release]
 panic = "unwind"
+
+
