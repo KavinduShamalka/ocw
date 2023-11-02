@@ -4558,6 +4558,7 @@ dependencies = [
  "log",
  "pallet-aura",
  "pallet-balances",
+ "pallet-cloud-bucket",
  "pallet-grandpa",
  "pallet-ocw",
  "pallet-store-words",
@@ -4846,6 +4847,23 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-cloud-bucket"
+version = "4.0.0-dev"
+dependencies = [
+ "cloud_mod",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
