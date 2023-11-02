@@ -6,6 +6,7 @@ use frame_support::{dispatch::GetDispatchInfo, traits::UnfilteredDispatchable};
 
 use sp_core::crypto::KeyTypeId;
 
+extern crate cloud_mod_lib;
 // ...
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"demo");

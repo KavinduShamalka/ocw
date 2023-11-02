@@ -52,7 +52,6 @@ pub use sp_runtime::{Perbill, Permill};
 pub use pallet_template;
 pub use pallet_user;
 pub use pallet_store_words;
-pub use pallet_storage;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -299,11 +298,6 @@ impl pallet_store_words::Config for Runtime {
 
 }
 
-/// Configure the pallet-storage in pallets/storage.
-impl pallet_storage::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-}
-
 impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
 where
 	RuntimeCall: From<LocalCall>,
@@ -374,7 +368,6 @@ construct_runtime!(
 		TemplateModule: pallet_template,
 		User: pallet_user,
 		Storewords: pallet_store_words,
-		Bucket: pallet_storage,
 	}
 );
 

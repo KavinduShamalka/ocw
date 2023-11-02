@@ -6,8 +6,8 @@ members = [
     "pallets/ocw",
     "pallets/user",
     "pallets/store-words",
-    "pallets/storage",
-    "runtime",
+    "cloud", 
+    "pallets/cloud_mod",
 ]
 [profile.release]
 panic = "unwind"
