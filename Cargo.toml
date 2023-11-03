@@ -6,8 +6,6 @@ members = [
     "pallets/ocw",
     "pallets/user",
     "pallets/store-words",
-    "cloud", 
-    "pallets/cloud_mod",
     "pallets/cloud-bucket",
 ]
 [profile.release]

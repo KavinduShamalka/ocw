@@ -1,5 +1,5 @@
 [toolchain]
-channel = "stable-aarch64-apple-darwin"
+channel = "nightly"
 components = [
 	"cargo",
 	"clippy",
