@@ -3,6 +3,8 @@ pub use pallet::*;
 
 extern crate cloud_mod_lib;
 
+use std;
+
 #[frame_support::pallet]
 pub mod pallet {
  use frame_support::pallet_prelude::*;

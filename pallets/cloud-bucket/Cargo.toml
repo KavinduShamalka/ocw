@@ -13,7 +13,6 @@ repository = "https://github.com/substrate-developer-hub/substrate-node-template
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-# cloud_mod = { path = "../cloud_mod" }
 codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = [
 	"derive",
 ] }
@@ -24,19 +23,20 @@ frame-system = { version = "4.0.0-dev", default-features = false, git = "https:/
 log = { version = "0.4.17", default-features = false }
 sp-std = { version = "8.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-runtime = { version = "24.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-core = { version = "21.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+lite-json = { version = "0.2.0", default-features = false }
+# file = { path = "../file_path" }
+# cloud_mod = { path = "../cloud_mod" }
 # serde = { version = '1.0.100', default-features = false, features = ['derive'] }
 # serde_json = { version = '1.0.45', default-features = false, features = ['alloc'] }
 # sp-io = { version = "23.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-# getrandom = { version = "0.2", features = ["js"] }
-sp-core = { version = "21.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-lite-json = { version = "0.2.0", default-features = false }
+# reqwest = { version = "0.11", features = ["json"] }
 # cloud-storage = "0.11.1"
 
 [dev-dependencies]
 sp-core = { version = "21.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-io = { version = "23.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-runtime = { version = "24.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-# cloud_mod = { path = "../cloud_mod" }
 
 [features]
 default = ["std"]
@@ -51,7 +51,6 @@ std = [
 	"sp-runtime/std",
 	"sp-io/std",
 	"sp-core/std",
-	# "getrandom/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]

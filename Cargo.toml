@@ -6,7 +6,7 @@ members = [
     "pallets/ocw",
     "pallets/user",
     "pallets/store-words",
-    "pallets/cloud-bucket",
+    "pallets/cloud-bucket", "file_path", 
 ]
 [profile.release]
 panic = "unwind"
