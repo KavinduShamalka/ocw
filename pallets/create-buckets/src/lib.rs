@@ -230,6 +230,8 @@
 
 // use cloud_storage::{Client, Bucket, NewBucket};
 
+// mod cloud;
+
 use sp_runtime::offchain::{http,Duration,};
 pub use pallet::*;
 
@@ -332,6 +334,8 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 
 		fn offchain_worker(block_number: BlockNumberFor<T>) {
+
+			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥 ");
 			
 			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
 			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);

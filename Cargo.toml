@@ -3,10 +3,10 @@ resolver = "2"
 members = [
     "node",
     "pallets/template",
-    "pallets/ocw",
-    "pallets/user",
-    "pallets/store-words",
-    "pallets/create-buckets",
+    # "pallets/user",
+    # "pallets/store-words",
+    "pallets/cloud-api",
+    # "pallets/create-buckets",
     "runtime",
 ]
 [profile.release]

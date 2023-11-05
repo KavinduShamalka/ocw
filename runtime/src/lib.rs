@@ -53,6 +53,7 @@ pub use pallet_template;
 pub use pallet_user;
 pub use pallet_store_words;
 pub use pallet_create_buckets;
+pub use pallet_cloud_api;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -348,6 +349,11 @@ impl pallet_create_buckets::Config for Runtime {
 	type AuthorityId = pallet_create_buckets::crypto::TestAuthId;
 }
 
+impl pallet_cloud_api::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AuthorityId = pallet_cloud_api::crypto::TestAuthId;
+}
+
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -364,6 +370,7 @@ construct_runtime!(
 		User: pallet_user,
 		StoreWord: pallet_store_words,
 		CreateBuckets: pallet_create_buckets,
+		CloudBuckets: pallet_cloud_api,
 	}
 );
 
