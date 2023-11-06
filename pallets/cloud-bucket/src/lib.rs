@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use sp_runtime::offchain::{http,Duration,};
+use sp_runtime::offchain::http::Method;
 
 use frame_support::{dispatch::GetDispatchInfo, traits::UnfilteredDispatchable};
 
@@ -122,6 +123,7 @@ pub mod pallet {
 		BucketCreated { name: T::AccountId },
 		FolderCreated { folder: T::AccountId },
 		FileFetched { file: T::AccountId },
+		FileDeleted { file_delete: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -147,10 +149,10 @@ pub mod pallet {
 			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
 			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number.clone());
 
-			match Self::fetch_word_and_send_signed() {
-				Ok(result) => log::info!("Word: {}", result),
-				Err(error) => log::info!("Error fetching word: {}", error),
-			}
+			// match Self::_fetch_word_and_send_signed() {
+			// 	Ok(result) => log::info!("Word: {}", result),
+			// 	Err(error) => log::info!("Error fetching word: {}", error),
+			// }
 
 			// match Self::_bucket_creation() {
 			// 	Ok(_) => log::info!("Bucket created"),
@@ -166,6 +168,11 @@ pub mod pallet {
 				Ok(_) => log::info!("File uploaded"),
 				Err(error) => log::info!("Error file uploading ===> : {:#?}", error)
 			}
+
+			// match Self::_delete_object() {
+			// 	Ok(code) => log::info!("✅️ ✅️ ✅️ Object deleted succesfully : {} ✅️ ✅️ ✅️", code),
+			// 	Err(error) => log::info!(" ❌ ❌ ❌ Error deleting object : {:#?} ❌ ❌ ❌", error)
+			// }
 
 
 		}
@@ -264,12 +271,27 @@ pub mod pallet {
 			Ok(())
 		}
 
+		//Delete file
+		#[pallet::call_index(4)]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn delete_object(origin: OriginFor<T>) -> DispatchResult {
+		
+			let sender = ensure_signed(origin)?;
+		
+			Self::deposit_event(Event::FileDeleted { file_delete: sender });
+
+			log::info!(" ✅️ ✅️ 👋 👋 🗂🗑 Hello from delete file 🗑🗂 👋 👋 ✅️ ✅️");
+		
+			Ok(())
+		
+		}
+
 	}
 
 	impl<T: Config> Pallet<T> {
 
 		//Fetch word from the api
-		fn fetch_word() -> Result<String, http::Error> {
+		fn _fetch_word() -> Result<String, http::Error> {
 
 			//set deadline
 			let deadline = offchain::timestamp().add(Duration::from_millis(2_000));
@@ -300,7 +322,7 @@ pub mod pallet {
 		}
 
 
-		fn fetch_word_and_send_signed() -> Result<String, &'static str> {
+		fn _fetch_word_and_send_signed() -> Result<String, &'static str> {
 
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
@@ -310,7 +332,7 @@ pub mod pallet {
 				)
 			}
 
-			let word = Self::fetch_word().map_err(|_| "Failed to fetch word")?;
+			let word = Self::_fetch_word().map_err(|_| "Failed to fetch word")?;
 
 			let results = signer.send_signed_transaction(|_account| {
 
@@ -423,7 +445,7 @@ pub mod pallet {
 
 			signer.send_signed_transaction(|_account| {
 
-				Call::create_folder {  }
+				Call::create_folder { }
 
 			});
 
@@ -431,6 +453,7 @@ pub mod pallet {
 		}
 
 
+		//file upload
 		fn _file_upload() -> Result<(), http::Error> {
 
 			//set deadline
@@ -444,9 +467,9 @@ pub mod pallet {
 			};
 
 			//send post request for file upload
-			let request = http::Request::post("https://storage.googleapis.com/upload/storage/v1/b/dockset-test-2/o?uploadType=media&name=dog.png", vec![value.clone()])
-			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZgJrYjZXBxviW6c_fbcYwk4Shz_B0ZV4JguWs_yaP46naegLWg01JkZD2Uq1fTKFvz34hu1iOvldVsqkNcE-9mAz-sokbMJGA2YLu04bZ7nMNt9PkbaJ5atAA9Fmu9lgAkMYMLMIylwxtM6QZTLnk9DNsQ5JfYChN3N8XxF1Dtde1OjZXaZmB6i_IEK7nMvo5TKZIP8obZeyqFTpnreuU4AfrzcRlWa_pcJ2rE2Nh5n-cY5-5jvmHgz5Gr4eUflp5AYnnAev41eiE0wjDKAzfn9L1YZKL2caRu_pdz2qsQ7bcTC41HLujdTgilP7cbBZN6FUnjXpDEHB2VCn0YXxQqMT811SSNSgHF7IddsQ9e9wX3F1ffoT4fQRdSohZgjrQH399DIcgaxMe4bSMoa4FmcbrFWOpkmfSYUtOdZ2McQBtraenp_WJVZI3cjUVfd0U2dJuBBF-IzJjdYgih053513XR3R22g9g9uY2F98pl3O6JqslpadncvS-wgUunvvw-mM88ffMRQthSel0FJVfabc07m3XzysIhB_l-OdM_8mBfk7-XOXB0Jofl_JXSsISr0J87ZB-9BdJffSI1pgb-WMiBW1uB49tB7Zydb3ndJnRSQh6tvZZ1X5JU69WMyczvdkOixdZ1eOjdrodan4OhypRSa85YQ7VJSpFazbstVd_Ye8c0R0rYsZSfs6txz-Qb_wQl0e562aeYfty7Supzb-xhs4c88cO9hBngsxwVj76Ymg53ZByzrJqxzt9aphwRXmUuSVvh03cOYsW7RR2lf8RkQFOmcylOOXo9sg1gM0cVeq0tghJ_R8QwJrz5fh0cqjV9fzOfsMvyz24vavuuOB2QnIhgXxB8ky3It14oVvtlJiWb2esIm5VaJFoyflbmRFwMblajny21VQn2y_9mqn0Q6Xdr5uhdU6xpuj3R7diwVpr-gSoFjjaonBRdI9SORB-wfmqMdq0lS0qqab5zU3W5MaFoF7Z-woFMF-J9F-J1UV6u")
-			.add_header("Content-Type", "image/jpeg");
+			let request = http::Request::post("https://storage.googleapis.com/upload/storage/v1/b/dockset-test-2/o?uploadType=media&name=fish.png", vec![value.clone()])
+			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZh_OLWm0iZEg5UI81lIZnaiHyZQ2gP1M4Z5ZouvjFuJwornXlTR6M7ogcYQgPBWk5V5jK8c4d6-VFzZpMrFMol9pLz2AQLl0pLKz6ui5V7b29xNGAGoAkIAa2Pa9DxhDHiY1wKP0sZwrOAj9DojnbQXib7HMjFpv1oGilUqwmiUgfBPvLSQrejdkODZjrAs0TOpVlPcRKQkNh9SwRd3aDsFcJxE8UJ3-cP3bGv5Qx6B1QB_skpm-WfBmKc6yUwaNkFXh7tZ1uN8wqCzLP1NswhdSL09gotlrQJ30c-nF9ljyyf5u-YPsN2wz_BcknCoWpwsXyFEPgh8HBGEW98QAM7o3A6J7aiM-MrEfs1DxpJP_HhV5nP9AMRE7KQNvozbH397K9dd9ppQkgOFca_Wi03wpsXSa4SsB7uOU1Fg1OReIXWsbxkpX-xpz0d35Yo8B26BUIjqR0UwZqw11pVYyUZ5I1I1Z_BVY0lZwqxpO3IQi8sU_lhqJp0YzrgJOUeVo3-qR__R8UuyceFRdJ7xdJ8byRBgxwr_xwUF4IXVa4XlX2rnWtvz0ym3_n9V1F4Q3d2Ue0u4Qc6rxr3a2t8yYel0U1w-pRtdW_s31bBuSnbl3fm45Be59klrbqX6Vbuaie53xpQp90JZo5lU8V-Yi_1d6vF29nnifw6xx0t9eunlSdVqo1_iW-_bBXRSzgYYentdu7rt1-vgOddSvuXabM8-zgMdwUFg0a24YaJ55arcMUzzjaQn1lS7XIgywW-qY3e_de3vI11SFla8R98uVvMg3uSfO9aeec4o2OMlU71ae1nYIgvR5-MnaIYxwvhvy-utuMnQyOrjqpFStYeebwRgvz33Qcd_Xm3d2V-l5bQIrl5n_Jl8-ujtah0vW2s4lX8pJ-bb1IUMluyBVpbMW4kYxkMuS8pByOdomnIk80uJaMxOnh0ijg2JqhIVxlJy3psfU7JMmrs7gXnfhSsX0gZzJsVR987FIo_fmJaOwQcFUriwmip")
+			.add_header("Content-Type", "image/png");
 
 			let pending = request
 			.deadline(_deadline)
@@ -471,9 +494,57 @@ pub mod pallet {
 		}
 
 		//file delete
+		fn _delete_object() -> Result<u16, http::Error> {
+
+			//set deadline
+			let _deadline = offchain::timestamp().add(Duration::from_millis(2_000));
+
+			//json body
+			let json_body = r#"{}"#;
+
+			let _delete_requsest = 	http::Request::default().method(Method::Delete)
+			.url("https://storage.googleapis.com/storage/v1/b/dockset-test-2/o/fish.png?key=AIzaSyDhzfhClfAgfD5rf66FsJ0ActaDMnHUPAU")
+			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZjoMG_C94EZm9j-Os139OrmnVgBfaYHpgs1OtoEUS88853X57aLa0OE97b5MG0YslUsXSDqvi2QzL2VCYZLTEKcp7lPKr2GaoikMcLOimA0Wlxk3FaqElVSyv1uvjLdKBlGTMgEIZvcmx1lK9wz1lL597Sg6BosmkBApbG1bjn6Ug0X1L-9tWIgYff-wJs5_XuQypKl_pXpj6Z73gBcW0n6fixmKcX5V1zvg-uH2NlbVTxQl41kJVzj9N9TdFcGomY4mG5IFmhKP74d_-wMTJmHsg51m6P13CObpW1IuvjQgq-pGZDBB2YuCvd9v8qHXlq-_Wzj7fK-E8vzQ9yQ4vhVdtpW_nXjz-5KdkNEQqCWnHqJ69wPSUQW7PPCy966AwN399KSvhwkzzIVhcBoZsebF3gWs19oIzoipjwdpBIOik4W86MdihtVdp7Ws4v6XkjYMq9gje0_wIMdmq-98p5ifkfYV9IhsU06OM39z4b-kdUjXoyVsuynhgOneFXq5Jk71cvf6SlyhFfv5kpY9zBBF4m7IiItqXFr44elW6ofRqf2g1f5suVt1RsO4eOvR2Yp2za6zF4-VyeBtaocSuuUdb5atoU0W0x--SlqzwFYQcmrO9kUUWjRo7llJO4I_ubI6vilIzkczfWzi13ViVZdqO-ng4zr-QgcqQs0Wu79asYJwO9l2nOIpBb9_cQanymec0MWuy2f0xcpkbdM-6cg4iIbgOQ9SRk5IzZv94MXaywylmeRgx7XrfvmSnz9IJS9vmeSgaxvVsyq35dujhjxWhF32mn4vXR-ksY3fMd0xR4RjzIr_YJyXqsm4ucWvZi42Y84Y6ghvO1kJMFpVJbgbwR2RuXZvvWd112iizqs7w8tx76qa08uUO8p-sk7t3Sqt746yc4Yb2VWMi4fxytBFBgnmnUW084pJ1lsWlty4dkQM9M-itOr3fyhX1I523pn85vfIjwk772evhdMIei14SO5fyuYIQSnMSji1IXV6S7pJze")
+			.add_header("Accept", "image/png");
+
+			let pending = _delete_requsest
+			.deadline(_deadline)
+			.body(vec![json_body])
+			.send()
+			.map_err(|_| http::Error::IoError)?;
 
 
-		//folder list
+			// Wait for response 
+			let _response = pending
+			.try_wait(_deadline)
+			.map_err(|_| http::Error::DeadlineReached)??;
+			
+			log::info!("🆔 Delete response status code: {:#?}", _response.code);
+			
+			//check response is successfull
+			if _response.code != 204 {
+				log::warn!("🛑 ❌  An unexpected status code occurs when deleting a file: {} ❌ 🛑", _response.code);
+				return Err(http::Error::Unknown)
+			}
+
+			// let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			// signer.send_signed_transaction(|_account| {
+
+			// 	Call::delete_object { }
+
+			// });
+
+			Ok(_response.code)
+		}
+		
+
+		/*
+			DELETE https://storage.googleapis.com/storage/v1/b/[BUCKET]/o/[OBJECT]?key=[YOUR_API_KEY] HTTP/1.1
+
+			Authorization: Bearer [YOUR_ACCESS_TOKEN]
+			Accept: application/json
+		*/
 
 	}
 }
