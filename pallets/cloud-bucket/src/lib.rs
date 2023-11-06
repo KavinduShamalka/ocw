@@ -61,6 +61,7 @@ pub mod pallet {
 	use scale_info::prelude::vec;
 	// use sp_std::{collections::vec_deque::VecDeque, str};
 	use sp_std::str;
+	use scale_info::prelude::format;
 	// const WORD_VEC_LEN: usize = 10;
 
 	// #[cfg(feature = "std")]
@@ -115,6 +116,10 @@ pub mod pallet {
 	#[pallet::getter(fn file)]
 	pub type FileSave<T> = StorageValue<_, Vec<u8>>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn delete)]
+	pub type ObjectDelete<T> = StorageValue<_, String>;
+
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -164,15 +169,15 @@ pub mod pallet {
 			// 	Err(error) => log::info!("Error: {:#?}", error)
 			// }
 
-			match Self::_file_upload() {
-				Ok(_) => log::info!("File uploaded"),
-				Err(error) => log::info!("Error file uploading ===> : {:#?}", error)
-			}
-
-			// match Self::_delete_object() {
-			// 	Ok(code) => log::info!("✅️ ✅️ ✅️ Object deleted succesfully : {} ✅️ ✅️ ✅️", code),
-			// 	Err(error) => log::info!(" ❌ ❌ ❌ Error deleting object : {:#?} ❌ ❌ ❌", error)
+			// match Self::_file_upload() {
+			// 	Ok(_) => log::info!("✅️ ✅️ ✅️ File uploaded ✅️ ✅️ ✅️"),
+			// 	Err(error) => log::info!(" ❌ ❌ ❌ Error file uploading ===> : {:#?} ❌ ❌ ❌", error)
 			// }
+
+			match Self::_delete_object() {
+				Ok(code) => log::info!("✅️ ✅️ ✅️ Object deleted succesfully : {} ✅️ ✅️ ✅️", code),
+				Err(error) => log::info!(" ❌ ❌ ❌ Error deleting object : {:#?} ❌ ❌ ❌", error)
+			}
 
 
 		}
@@ -274,9 +279,11 @@ pub mod pallet {
 		//Delete file
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn delete_object(origin: OriginFor<T>) -> DispatchResult {
+		pub fn delete_object(origin: OriginFor<T>, object_name: String) -> DispatchResult {
 		
 			let sender = ensure_signed(origin)?;
+
+			<ObjectDelete<T>>::put(object_name);
 		
 			Self::deposit_event(Event::FileDeleted { file_delete: sender });
 
@@ -468,7 +475,7 @@ pub mod pallet {
 
 			//send post request for file upload
 			let request = http::Request::post("https://storage.googleapis.com/upload/storage/v1/b/dockset-test-2/o?uploadType=media&name=fish.png", vec![value.clone()])
-			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZh_OLWm0iZEg5UI81lIZnaiHyZQ2gP1M4Z5ZouvjFuJwornXlTR6M7ogcYQgPBWk5V5jK8c4d6-VFzZpMrFMol9pLz2AQLl0pLKz6ui5V7b29xNGAGoAkIAa2Pa9DxhDHiY1wKP0sZwrOAj9DojnbQXib7HMjFpv1oGilUqwmiUgfBPvLSQrejdkODZjrAs0TOpVlPcRKQkNh9SwRd3aDsFcJxE8UJ3-cP3bGv5Qx6B1QB_skpm-WfBmKc6yUwaNkFXh7tZ1uN8wqCzLP1NswhdSL09gotlrQJ30c-nF9ljyyf5u-YPsN2wz_BcknCoWpwsXyFEPgh8HBGEW98QAM7o3A6J7aiM-MrEfs1DxpJP_HhV5nP9AMRE7KQNvozbH397K9dd9ppQkgOFca_Wi03wpsXSa4SsB7uOU1Fg1OReIXWsbxkpX-xpz0d35Yo8B26BUIjqR0UwZqw11pVYyUZ5I1I1Z_BVY0lZwqxpO3IQi8sU_lhqJp0YzrgJOUeVo3-qR__R8UuyceFRdJ7xdJ8byRBgxwr_xwUF4IXVa4XlX2rnWtvz0ym3_n9V1F4Q3d2Ue0u4Qc6rxr3a2t8yYel0U1w-pRtdW_s31bBuSnbl3fm45Be59klrbqX6Vbuaie53xpQp90JZo5lU8V-Yi_1d6vF29nnifw6xx0t9eunlSdVqo1_iW-_bBXRSzgYYentdu7rt1-vgOddSvuXabM8-zgMdwUFg0a24YaJ55arcMUzzjaQn1lS7XIgywW-qY3e_de3vI11SFla8R98uVvMg3uSfO9aeec4o2OMlU71ae1nYIgvR5-MnaIYxwvhvy-utuMnQyOrjqpFStYeebwRgvz33Qcd_Xm3d2V-l5bQIrl5n_Jl8-ujtah0vW2s4lX8pJ-bb1IUMluyBVpbMW4kYxkMuS8pByOdomnIk80uJaMxOnh0ijg2JqhIVxlJy3psfU7JMmrs7gXnfhSsX0gZzJsVR987FIo_fmJaOwQcFUriwmip")
+			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZjNzR8Io55HxzHXKvq08_Nw82tAbdI2ayjtopXtEdQuZf9dqHb7nc_06enJf66wTMIIZIiRybhU6q8pWzXgG_R283qPCUD2Y8jY-JIOCdz3jCtbCZva_-F_jt-_AEqQRqMYFO9HiiYnP4kPSme4qrDKmvF_w5vPxP05QvSyLWQn9vOgHq4XRRpp1uLeTj_MGacYHJ1pPSz0VwsMqcS6AmndSU5XH08pzxkd2eY2KgR5wGFgDhG2cf8Zr1WvRrTxPUd3CtsshTc180PGBDwlHGCBK4vqWwk57XByCc0l0I2BDghbsTlK4PEdzwXGnIXzW70KdPDseyds_wtmi44zaQTeBjncMQB9LmmEdBL2YML6HNESzWSZp7JAu1jmR2A8BwG399CI3h3445_Blm3-3puid51to7bz0U-z9t19U9hihjsz5dcR4Qdovi5ktBZSrcnWRR9wpUrJdu6yBQ3gOxumzmYgieQgl9ahJRkx0mixs-xJR6BMixnxinxS6hOw88eypyd1Wpqfnbe9uz15O8Jmvh-p8Xvre3xZSvVM71nZlQ-zm52nm303SOFqF9-m_9391dQpmigSusROY1p1zaI7YQnklwU5onSm__SumFJvRlRFgevQbQZy7-ZSM8zfO9x4M28FcRlhWJxYWvx4YZv_SQi7_qgJnwt-3Xd_W7woU0W0WmiiVa2uOpJcnhloFgU6lqZB0exgUs6BrM-ncjdw6Xmj97vfcQ_Qm48JoylmmmfxU-zr-5doxU4qxUf-hj4XO7I_h1smcpSu3ipXamdlR9Oj6gluYbX4MIn5ZkYy4U-Sse0sSldVspMYa97dFB_hBXbpx9jXy1fWI8vesxvWp9i1mWtz_1WyJnjec9_m1OiBtoz75F4B2kic-jjYm3lqvinSqztImymyVU-3RRez6k8Qul7uhwF2BrWZZc0BrpiB9ZM_JOW6kzi6VqS6V-wgxg8jc96gey8O-mQZV_ruluJMwd937w9IramwOBwki5k0v-e")
 			.add_header("Content-Type", "image/png");
 
 			let pending = request
@@ -499,12 +506,22 @@ pub mod pallet {
 			//set deadline
 			let _deadline = offchain::timestamp().add(Duration::from_millis(2_000));
 
+
+			let get = ObjectDelete::<T>::try_get();
+
+			let object_name = match get {
+				Ok(result) => result,
+				Err(_) => "".to_string(), // Return an empty Vec<u8> on error
+			};
+
+			let file_delete_url = format!("https://storage.googleapis.com/storage/v1/b/dockset-test-2/o/{}?key=AIzaSyDALd0Bm-prjVKyNDZROwSPYeZJMIMTm38", object_name.clone());
+
 			//json body
 			let json_body = r#"{}"#;
 
 			let _delete_requsest = 	http::Request::default().method(Method::Delete)
-			.url("https://storage.googleapis.com/storage/v1/b/dockset-test-2/o/fish.png?key=AIzaSyDhzfhClfAgfD5rf66FsJ0ActaDMnHUPAU")
-			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZjoMG_C94EZm9j-Os139OrmnVgBfaYHpgs1OtoEUS88853X57aLa0OE97b5MG0YslUsXSDqvi2QzL2VCYZLTEKcp7lPKr2GaoikMcLOimA0Wlxk3FaqElVSyv1uvjLdKBlGTMgEIZvcmx1lK9wz1lL597Sg6BosmkBApbG1bjn6Ug0X1L-9tWIgYff-wJs5_XuQypKl_pXpj6Z73gBcW0n6fixmKcX5V1zvg-uH2NlbVTxQl41kJVzj9N9TdFcGomY4mG5IFmhKP74d_-wMTJmHsg51m6P13CObpW1IuvjQgq-pGZDBB2YuCvd9v8qHXlq-_Wzj7fK-E8vzQ9yQ4vhVdtpW_nXjz-5KdkNEQqCWnHqJ69wPSUQW7PPCy966AwN399KSvhwkzzIVhcBoZsebF3gWs19oIzoipjwdpBIOik4W86MdihtVdp7Ws4v6XkjYMq9gje0_wIMdmq-98p5ifkfYV9IhsU06OM39z4b-kdUjXoyVsuynhgOneFXq5Jk71cvf6SlyhFfv5kpY9zBBF4m7IiItqXFr44elW6ofRqf2g1f5suVt1RsO4eOvR2Yp2za6zF4-VyeBtaocSuuUdb5atoU0W0x--SlqzwFYQcmrO9kUUWjRo7llJO4I_ubI6vilIzkczfWzi13ViVZdqO-ng4zr-QgcqQs0Wu79asYJwO9l2nOIpBb9_cQanymec0MWuy2f0xcpkbdM-6cg4iIbgOQ9SRk5IzZv94MXaywylmeRgx7XrfvmSnz9IJS9vmeSgaxvVsyq35dujhjxWhF32mn4vXR-ksY3fMd0xR4RjzIr_YJyXqsm4ucWvZi42Y84Y6ghvO1kJMFpVJbgbwR2RuXZvvWd112iizqs7w8tx76qa08uUO8p-sk7t3Sqt746yc4Yb2VWMi4fxytBFBgnmnUW084pJ1lsWlty4dkQM9M-itOr3fyhX1I523pn85vfIjwk772evhdMIei14SO5fyuYIQSnMSji1IXV6S7pJze")
+			.url(file_delete_url.as_str())
+			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZjNzR8Io55HxzHXKvq08_Nw82tAbdI2ayjtopXtEdQuZf9dqHb7nc_06enJf66wTMIIZIiRybhU6q8pWzXgG_R283qPCUD2Y8jY-JIOCdz3jCtbCZva_-F_jt-_AEqQRqMYFO9HiiYnP4kPSme4qrDKmvF_w5vPxP05QvSyLWQn9vOgHq4XRRpp1uLeTj_MGacYHJ1pPSz0VwsMqcS6AmndSU5XH08pzxkd2eY2KgR5wGFgDhG2cf8Zr1WvRrTxPUd3CtsshTc180PGBDwlHGCBK4vqWwk57XByCc0l0I2BDghbsTlK4PEdzwXGnIXzW70KdPDseyds_wtmi44zaQTeBjncMQB9LmmEdBL2YML6HNESzWSZp7JAu1jmR2A8BwG399CI3h3445_Blm3-3puid51to7bz0U-z9t19U9hihjsz5dcR4Qdovi5ktBZSrcnWRR9wpUrJdu6yBQ3gOxumzmYgieQgl9ahJRkx0mixs-xJR6BMixnxinxS6hOw88eypyd1Wpqfnbe9uz15O8Jmvh-p8Xvre3xZSvVM71nZlQ-zm52nm303SOFqF9-m_9391dQpmigSusROY1p1zaI7YQnklwU5onSm__SumFJvRlRFgevQbQZy7-ZSM8zfO9x4M28FcRlhWJxYWvx4YZv_SQi7_qgJnwt-3Xd_W7woU0W0WmiiVa2uOpJcnhloFgU6lqZB0exgUs6BrM-ncjdw6Xmj97vfcQ_Qm48JoylmmmfxU-zr-5doxU4qxUf-hj4XO7I_h1smcpSu3ipXamdlR9Oj6gluYbX4MIn5ZkYy4U-Sse0sSldVspMYa97dFB_hBXbpx9jXy1fWI8vesxvWp9i1mWtz_1WyJnjec9_m1OiBtoz75F4B2kic-jjYm3lqvinSqztImymyVU-3RRez6k8Qul7uhwF2BrWZZc0BrpiB9ZM_JOW6kzi6VqS6V-wgxg8jc96gey8O-mQZV_ruluJMwd937w9IramwOBwki5k0v-e")
 			.add_header("Accept", "image/png");
 
 			let pending = _delete_requsest
@@ -527,13 +544,13 @@ pub mod pallet {
 				return Err(http::Error::Unknown)
 			}
 
-			// let signer = Signer::<T, T::AuthorityId>::all_accounts();
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
-			// signer.send_signed_transaction(|_account| {
+			signer.send_signed_transaction(|_account| {
 
-			// 	Call::delete_object { }
+				Call::delete_object { object_name: object_name.clone() }
 
-			// });
+			});
 
 			Ok(_response.code)
 		}
