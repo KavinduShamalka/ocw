@@ -120,6 +120,14 @@ pub mod pallet {
 	#[pallet::getter(fn delete)]
 	pub type ObjectDelete<T> = StorageValue<_, String>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn deletebucket)]
+	pub type BucketDelete<T> = StorageValue<_, String>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn filesave)]
+	pub type StoreFile<T: Config> = StorageDoubleMap<Hasher1 = Blake2_128Concat, Key1 = T::AccountId, Hasher2 = Twox64Concat, Key2 = String, Value = Vec<u8>, QueryKind = ValueQuery>;
+
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -129,6 +137,7 @@ pub mod pallet {
 		FolderCreated { folder: T::AccountId },
 		FileFetched { file: T::AccountId },
 		FileDeleted { file_delete: T::AccountId },
+		BucketDeleted { bucket_delete: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -174,9 +183,14 @@ pub mod pallet {
 			// 	Err(error) => log::info!(" ❌ ❌ ❌ Error file uploading ===> : {:#?} ❌ ❌ ❌", error)
 			// }
 
-			match Self::_delete_object() {
-				Ok(code) => log::info!("✅️ ✅️ ✅️ Object deleted succesfully : {} ✅️ ✅️ ✅️", code),
-				Err(error) => log::info!(" ❌ ❌ ❌ Error deleting object : {:#?} ❌ ❌ ❌", error)
+			// match Self::_delete_object() {
+			// 	Ok(code) => log::info!("✅️ ✅️ ✅️ Object deleted succesfully : {} ✅️ ✅️ ✅️", code),
+			// 	Err(error) => log::info!(" ❌ ❌ ❌ Error deleting object : {:#?} ❌ ❌ ❌", error)
+			// }
+
+			match Self::_delete_bucket() {
+				Ok(code) => log::info!("✅️ ✅️  Bucket deleted succesfully : {} ✅️ ✅️", code),
+				Err(error) => log::info!(" ❌ ❌ Error deleting bucket : {:#?} ❌ ❌", error)
 			}
 
 
@@ -264,6 +278,8 @@ pub mod pallet {
 
 			// log::info!("Fule {:#?}", file.clone());
 
+			// <StoreFile<T>>::insert(sender.clone(), file_name, _file);
+
 			<FileSave<T>>::put(_file);
 
 			Self::deposit_event(Event::FileFetched { file: sender });
@@ -292,6 +308,24 @@ pub mod pallet {
 			Ok(())
 		
 		}
+
+		//Delete bucket
+		#[pallet::call_index(5)]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn delete_bucket(origin: OriginFor<T>, bucket_name: String) -> DispatchResult {
+
+			let sender = ensure_signed(origin)?;
+
+			<BucketDelete<T>>::put(bucket_name);
+
+			Self::deposit_event(Event::BucketDeleted { bucket_delete: sender });
+
+			log::info!(" ✅️ ✅️ 👋 👋 🗑 Hello from delete Bucket 🗑 👋 👋 ✅️ ✅️");
+		
+			Ok(())
+
+		}
+
 
 	}
 
@@ -506,7 +540,6 @@ pub mod pallet {
 			//set deadline
 			let _deadline = offchain::timestamp().add(Duration::from_millis(2_000));
 
-
 			let get = ObjectDelete::<T>::try_get();
 
 			let object_name = match get {
@@ -562,6 +595,60 @@ pub mod pallet {
 			Authorization: Bearer [YOUR_ACCESS_TOKEN]
 			Accept: application/json
 		*/
+
+		//Bucket delete
+		fn _delete_bucket() -> Result<u16, http::Error> {
+
+			//set deadline
+			let _deadline = offchain::timestamp().add(Duration::from_millis(2_000));
+
+			let get = BucketDelete::<T>::try_get();
+
+			let object_name = match get {
+				Ok(result) => result,
+				Err(_) => "".to_string(), // Return an empty Vec<u8> on error
+			};
+
+			let bucket_delete_url = format!("https://storage.googleapis.com/storage/v1/b/{}?key=AIzaSyBy7gFPuSKCBkmO1WSQqXG2ts-UZ9FwCM4", object_name.clone());
+
+			//json body
+			let json_body = r#"{}"#;
+
+			let _delete_requsest = 	http::Request::default().method(Method::Delete)
+			.url(bucket_delete_url.as_str())
+			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZjxEIlXRPuiIFGVKAVpkd-oFT-Et2oKLw38gzMS0geRgdClD1vLymLzQENNE7pmRPAIKlQ8Ykry7FvLNWMnQvUMfdLrxwtdxWtX_GunY1rPz3gUD_Ypv5QVb8iCLepdwGc_5fFiF_xScZgDr5fMLUykN2xRSaHqGBlFcr7FYDW4Qm8gC0I3o9UTsl9LSIMafQ5tmH3Az1V9ofioAYEIUfEiOeTJU6So4FABN2qUO7nopsKu9kaF-xH_h8vbKo3vg_K7n92VcDlSJce5EQsPQWAGAp4wYD-7ylf8lpOOsKwJjJTwKTfKwhAdb_5td8MH4vz0590OxKYW_ThIqWKLADVNrBI_LOFD8GzSNJioyJ7eimuXqGn8YE_v6mG1-HEe-QL399Peq2hMn9JpX3b-3UowpOehkjBosvmWW76u2jS8vbfpVfXFXJSwgngBx_xVbMu6M-yM0WMd5alsSXkFIn5W09Bd12tiSF0Jjcpilo8J2Vxx4RY-MOBmm4egjrrJFZon0Ydll5mtsqF_QQ6pq3IxjXrYdB5pV4RdllIt8QXW-lV1YFV8RzeendFUI9nc1bt0ewbuaJk6oO2BXyjusMmMh8uWo75UxQMogcsIhd3FMIsQJqMicY4I6rugJOStUvVJ7Y56uzp6V-3th2yaskot8xV6e3ebgbQluBknW3-Q2vn5nlbU2cBpwivrwdIBvFbnSOeQ0f5t6ZWUie783ebfbFc6FSsSMz4OogZS2V-hBY5_-uZ5OZw66nf3e9YMl1VYnl2VwpbYqvXlUm5kFxSMdXv2tbri_MyJbXj7iwvzix4WWaUsvexbkMtFk5taMVOpYbkXiYlJsJon5OwM0JwjB9Q7se6qQ5k7sYbBiwZY4hI1Ihget5dVl3QeMcvtp05BcuVhVx6bbidfbluesbR4J18mIbB7xV7_tsbwkZxhM9ywd1ozId3z8vx1gscWsrUeJiZhZcy4vOtMRJhgqQ5jboj2IJnxq4s50r-ns7wxpSU-t66");
+			// .add_header("Accept", "application/json");
+
+			let pending = _delete_requsest
+			.deadline(_deadline)
+			.body(vec![json_body])
+			.send()
+			.map_err(|_| http::Error::IoError)?;
+
+
+			// Wait for response 
+			let _response = pending
+			.try_wait(_deadline)
+			.map_err(|_| http::Error::DeadlineReached)??;
+			
+			log::info!("🆔 Delete bucket response status code: {:#?}", _response.code);
+			
+			//check response is successfull
+			if _response.code != 204 {
+				log::warn!("🛑 ❌  An unexpected status code occurs when deleting a bucket: {} ❌ 🛑", _response.code);
+				return Err(http::Error::Unknown)
+			}
+
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			signer.send_signed_transaction(|_account| {
+
+				Call::delete_bucket { bucket_name: object_name.clone() }
+
+			});
+
+			Ok(_response.code)
+		}
 
 	}
 }
