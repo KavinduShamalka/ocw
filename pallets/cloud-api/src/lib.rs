@@ -54,9 +54,10 @@ pub mod pallet {
 		pallet_prelude::{OriginFor, *},
 	};
 	use scale_info::prelude::string::String;
-	use sp_std::{collections::vec_deque::VecDeque, str, vec};
+	use sp_std::{str, vec};
 	use sp_std::vec::Vec;
 	use sp_runtime::offchain::http::Method;
+	use scale_info::prelude::format;
 	// const WORD_VEC_LEN: usize = 10;
 
 	#[pallet::pallet]
@@ -71,7 +72,7 @@ pub mod pallet {
 	}
 
 	//Bucket name Struct
-	#[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo)]
+	#[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo, Debug)]
 	pub struct BucketName {
 		pub name: String,
 	}
@@ -82,27 +83,55 @@ pub mod pallet {
 		pub fname: String,
 	}
 
-	//File name structure
+	//File structure
 	#[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo, Debug)]
 	pub struct File {
 		pub file: Vec<u8>,
+		pub file_name: String,
+		pub bucket_name: String,
 	}
+
+	// //File name structure
+	// #[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo, Debug)]
+	// pub struct FileName {
+	// 	pub filename: String,
+	// }
+
 
 	#[pallet::storage]
 	#[pallet::getter(fn info)]
-	pub type BucketNameSave<T> = StorageValue<_, BucketName>;
+	pub type BucketSave<T> = StorageValue<_, String>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn fstore)]
 	pub type FolderNameSave<T> = StorageValue<_, FolderName>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn store)]
-	pub type BucketNameStore<T> = StorageValue<_, VecDeque<String>, ValueQuery>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn store)]
+	// pub type BucketNameStore<T> = StorageValue<_, VecDeque<String>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn file)]
-	pub type FileSave<T> = StorageValue<_, Vec<u8>>;
+	pub type FileSave<T> = StorageValue<_, File>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn bdelete)]
+	pub type BucketDelete<T> = StorageValue<_, String>;
+
+	// #[pallet::storage]
+	// #[pallet::getter(fn filefetch)]
+	// pub type FileStore<T: Config> = StorageDoubleMap<
+    //     Hasher1 = Blake2_128Concat,
+    //     Key1 = T::AccountId,
+    //     Hasher2 = Twox64Concat,
+    //     Key2 = String,
+    //     Value = Vec<u8>,
+    //     QueryKind = ValueQuery
+    // >;
+
+	#[pallet::storage]
+	#[pallet::getter(fn fnamestore)]
+	pub type FileDelete<T> = StorageValue<_, String>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -111,6 +140,7 @@ pub mod pallet {
 		FolderCreated { fname: T::AccountId },
 		FileFetched { file: T::AccountId },
 		FileDeleted { file: T::AccountId },
+		BucketDeleted { name: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -133,38 +163,29 @@ pub mod pallet {
 			log::info!("Hello from ⛓️‍💥 cloud offchain worker ⛓️‍💥.");
 			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
 
-			// match Self::create_bucket_request() {
-			// 	Ok(word) => log::info!("Bucket: {:?} created successfully", word),
-			// 	Err(_) => log::info!("Error creating bucket"),
-			// }
+			match Self::create_bucket_request() {
+				Ok(word) => log::info!("✅ 🤟🤟🤟 Bucket: {:?} created successfully 🤟🤟🤟 ✅", word),
+				Err(_) => log::info!("⚫⭕Error creating bucket⭕⚫"),
+			}
 
 			// match Self::create_folder_in_bucket() {
 			// 	Ok(word) => log::info!("Folder: {:?} created successfully", word),
 			// 	Err(_) => log::info!("Error creating folder"),
 			// }
 
-			// match Self::create_bucket_request() {
-            //     Ok(bucket_name) => {
-            //         <BucketNameSave<T>>::put(BucketName { name: bucket_name.clone() });
-            //         Self::deposit_event(Event::BucketCreated(bucket_name));
-            //     }
-            //     Err(_) => log::info!("Error creating bucket"),
-            // }
-
-			// match Self::_file_upload() {
-			// 	Ok(_) => log::info!(" 📁 ✅ 〰️〰️ File uploaded 〰️〰️ 📁 ✅"),
-			// 	Err(error) => log::info!("📁 ➡️ ⭕⭕ ❌❌❌❌ Error file uploading ===> : {:#?} ⭕⭕ ❌❌❌❌", error)
-			// }
-
-			// match Self::file_delete() {
-			// 	Ok(_) => log::info!("File deleted"),
-			// 	Err(error) => log::info!("Error file deleting ===> : {:#?}", error)
-			// }
-
+			match Self::file_upload() {
+					Ok(_) => log::info!(" 📁 ✅ 〰️〰️ File uploaded 〰️〰️ 📁 ✅"),
+					Err(error) => log::info!("📁 ➡️ ⭕⭕ ❌❌❌❌ Error file uploading ===> : {:#?} ⭕⭕ ❌❌❌❌", error)
+			}
 			
 			match Self::file_delete() {
 				Ok(code) => log::info!("✅✅✅✅ File deleted : {} ✅✅✅✅", code),
 				Err(error) => log::info!("❌❌❌❌ Error file deleting ===> : {:#?} ❌❌❌❌", error)
+			}
+
+			match Self::bucket_delete() {
+				Ok(code) => log::info!("✅✅✅✅  Bucket deleted : {} ✅✅✅✅", code),
+				Err(error) => log::info!("❌❌❌❌ Error bucket deleting ===> : {:#?} ❌❌❌❌", error)
 			}
 		}
 	}
@@ -174,12 +195,12 @@ pub mod pallet {
 		//Store word
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn save_bucket_name(origin: OriginFor<T>, name: String) -> DispatchResult {
+		pub fn create_bucket(origin: OriginFor<T>, name: String) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 
-			let new_name = BucketName { name };
+			// let new_name = BucketName { name };
 
-			<BucketNameSave<T>>::put(new_name);
+			<BucketSave<T>>::put(name);
 
 			Self::deposit_event(Event::BucketCreated { name: sender });
 
@@ -206,18 +227,17 @@ pub mod pallet {
 
 		#[pallet::call_index(2)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn upload_file(origin: OriginFor<T>, _file: Vec<u8>) -> DispatchResult {
+		pub fn upload_file(origin: OriginFor<T>,file_name: String, file: Vec<u8>, bucket_name: String) -> DispatchResult {
 			
 			log::info!("Hello from upload file");
 			
 			let sender = ensure_signed(origin)?;
 
-			// let new_file = FileName { filename };
+			let new_file = File { file, file_name, bucket_name };
 
-			// <FileNameSave<T>>::put(new_file);
+			<FileSave<T>>::put(new_file);
 			
-			<FileSave<T>>::put(_file);
-
+			// <FileStore<T>>::insert(sender.clone(), filename, _file);
 
 			Self::deposit_event(Event::FileFetched { file: sender });
 
@@ -227,15 +247,14 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn delete_file(origin: OriginFor<T>) -> DispatchResult {
+		pub fn delete_file(origin: OriginFor<T>, filename: String) -> DispatchResult {
 			
 			log::info!("Hello from delete file");
 			
 			let sender = ensure_signed(origin)?;
 
-			// let new_file = FileName { filename };
 
-			// <FileNameSave<T>>::put(new_file);
+			<FileDelete<T>>::put(filename);
 
 
 			Self::deposit_event(Event::FileDeleted { file: sender });
@@ -243,19 +262,48 @@ pub mod pallet {
 		
 			Ok(())
 		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn delete_bucket(origin: OriginFor<T>, bucketname: String) -> DispatchResult {
+			
+			log::info!("Hello from delete bucket");
+			
+			let sender = ensure_signed(origin)?;
+
+			<BucketDelete<T>>::put(bucketname);
+
+
+			Self::deposit_event(Event::BucketDeleted { name: sender });
+
+		
+			Ok(())
+		}
+
+
 	}
 
 	impl<T: Config> Pallet<T> {
 		//fetch data from the url
-		fn _create_bucket_request() -> Result<String, http::Error> {
+		fn create_bucket_request() -> Result<String, http::Error> {
 
 			let url = "https://storage.googleapis.com/storage/v1/b?project=intern-storage-apis";
+
+			let bucket_store = BucketSave::<T>::try_get();
+
+			let value = match bucket_store {
+				Ok(res) => res,
+				Err(_) => String::new(), 
+			};
 			
-			let json_data = r#"{"name": "fcx-text-bucket1"}"#;
+			let json_data = format!(r#"{{"name": "{}"}}"#, value);
+
+
+			log::info!("JSON_DATA:  {:?}", json_data);
 
 			let request =
-				http::Request::post(url, vec![json_data])
-					.add_header("Authorization", "Bearer ya29.c.c0AY_VpZhPswE6MeSUeJ-FEjK66VCMEzwX05e1XseG-8UDlXsy_fuJgZH-ifOOYelgWk2s6Yztv4CVYrOptg6rJy31q0qocB9YgXuyo2aBptIsS4VVu2O_7q0D5gydjfcA-89bYaRIhsui6pkoXbXQNtp0hrRSOeENHphRRvkpYJhpsTDTxpxb1CiAZlQ_7PLza6RpSBnvBz1dl6oDcIsLqL8uzhDbBsgyb7WyeG6AdpuCiOxSiHOaDLODRJdntbV7p6l3IFQnoEimBmw7IzjTWuvaJYiXqHfNnXqJax5uOOnVpGINiFWlQM1Ii9SzOnt5j2qDYdzE1vcuW354wT9v1hnOiwpnH3UNfoSEMFm3l3fYCNGmNoxfzdKjyExwcUSUYewmL397Di30mhV9pV0OwsQdg2aX4FSui8bRaz5eo6mkW9Y5FmseZgkWwfw0Z5hJIWunRitcWcV23hFkoI_qsUmdlbM23QppdqZ4XBRe55VUl5sv2yJf70YjoRzMdytiQ5WMnaVYMQFWhqQ-eizd0l-FF37x9Y7aOjS0nqMeU2vQioMBou3-vBycRQZS3140J-rtZBnWBcdk-7sdJqnOtU98hdpVjU7S9U2lOj605koke8hqBVq1YXju0BWIBSsOgdIv3RtSgyMZVJm4yr8VjdmjqoxifdwpomhRQmVU_Q0oZvjwe7507YcXyV5M023IWMZSXmZoeI5JIzgzujce1JedgBqbv_hv-XBUF8YYYQBIt3mvbOqtZw_W_cQpoxSvnVMYmdal4or39avw1Mpgsot9gcealV5YnkFb1UiFBy-mqJlUp_b1JSo43XmQkYOSx-p206_b-XWsIwrx3d0Zwb2n41uarmq2j2qou5fr2zuZb81cQjln3r0IcOgaBmt_RwQOmgjp036xIV-ejczOuOiFFJQZq7y1ZRSYBzqjYSsg7kzMfymiaU0iRR6JWfer74Z-lm21R60Vw0_O_YY81k_V4h_X0jrBe6BQmxeVer-ppYk2IOmBlmj")
+				http::Request::post(url, vec![json_data.clone()])
+					.add_header("Authorization", "Bearer ya29.c.c0AY_VpZhFDtmRP48p82xlqwJTgVKTaDC0QhHdRZrx3r_tK6r0aiGzMZhNJ-cKBEFpzgi5SpT3a3-FCXxSI4MTNcJgByaDx82GWBic9aGj7r5s7-zo1cmXm2QBWnmxWg5-5xHyrVWEX7ypaeOXfbazkeC-v4DLOTxodFgAMr8N3fmBhCBmeGqgaP21Sqa7is8s3ArGX3CeEIFvdZE4V3AuEoWT0e-wVOYPh5Gd9agQK_tvMcC1Mu_QLkvfiNCN4udbr-eK2yIcGtYZgDhuwxaS1tIzUIeA9KwlexDcE7t5fwIT-mJnzYS-YNE2qCd1yaIuMNJNoUP368hyi4dSIdT9sdmHywhVKADrmcL2mWEAGoQCWmSUTnMEOgE4wYdhiaNxlz5KJAL399Kk75Wl70Yjr5suIlpimsFy6dV-wvwV8j6qrXsk8XXggIbz2Vm-6lI_UscI5ROpvxcxJggJXvjlyo07tYzp2ilkfnQZwOg9g4yyiwzplU8YBXr1-x8BunO1_cX9p-iIWksZMOfUzSbp8J77MWFvx-W8OU1QIUa5Qi49aOmZfnX7uBVflltcvkBZiXc2hYFdsj9hmiRszd0665WS4210Bnpz9SRJ5jR2SBb9JII8JMhX1jhZyFhJhOpZ4qtkIXXcIa3-Oe6_3-in-ijjceUjoZw83aaYv9RtFWuyV7nzQe3Mybu8phFuOu2jcp0V7B-sVq_vOwn-rZn5JBJagtcbli-eYUahR0XRJcv1f_8MrMxvYyOJQU5lzuvxfXmo1b0i6J7rBz3008YIi02sV3gbmoiY-qrW44S7m6dZetVQVgRbI8sgqM7m4SobYbanMzd7v3Yd_tbWW_aYgdQ651m86RVcyt91ofbWv1_UmiV-mYfomgevm4Z0Y-sVSVcO4raUfx_cB20ap4qgFSu3jYbYFodtOsx_1WrVInRlaWZ8WqWyfZpuFFbVew2pBfFWzzebk_jBIk_8h3mZ_jFMjVV5wXya1msrfeiJdtptzn2viOQ9RUp")
 					.add_header("Content-Type", "application/json")
 					.add_header("Accept", "application/json");
 
@@ -272,14 +320,20 @@ pub mod pallet {
 
 
 			if response.code != 200 {
-                log::warn!("Unexpected status code: {}", response.code);
+                log::warn!("❌⚫ Unexpected status code: {} ❌⚫", response.code);
                 return Err(http::Error::Unknown)
             }
 
 
-			Self::fetch_word_and_send_signed("fcx-text-bucket1".to_string());
+			// Self::fetch_word_and_send_signed("fcx-text-bucket1".to_string());
 
-    		Ok("fcx-text-bucket1".to_string())
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			signer.send_signed_transaction(|_account| {
+				Call::create_bucket { name: value.clone()}
+			});
+
+    		Ok(value)
 		}
 
 		fn _create_folder_in_bucket() -> Result<String, http::Error> {
@@ -291,7 +345,7 @@ pub mod pallet {
 			
 		
 			let request = http::Request::post(url, vec![json_data])
-				.add_header("Authorization", "Bearer ya29.c.c0AY_VpZgI-kTUuQuRlxeTf0T8g5XIQcBYmkkq9xdAQ-1e6s3jFxaLGtlHXy-6oQ4HRFf54ep7ErrldPkYi5CFoEnzCZI6mO_zdRFusiDlsccgMn8NmA8ZDtWZKdPZVmzGDYcJTTAfIQn4tfPaLN_XcSZIwWYqaMaJANEzxfom7ZkF0OYxSLxZSMxLaNxcwRqGWiJ_BVbBCW6VM-f9SKgbeTB-fcr_MpXOsgDhw6rghuN5X4nNxC-x_WtgJ5xClPzZ6wHpmm0s3rBu7MuDPocfHslToe_ZQzKOEmsAy3TvaSBD_Zqw8KfHBUTxbVbWzq231wwMuaa8otcRIedhQLsLcTdrdVQ4KKlTmfRZxzyAq_S-Fqk4YPDl4admUv9xver_ipgP-AL399DfQds0-53-ZBhMQcYoUw99ggbixSesU-SvU3nkJd7ojXXoItWhOSR5hQi4pSpwIbo4vqIZQYnmRsOIgj091M5agz6g9_hpi58vgleYrF6eqoX1_rtm-g0QjZy5nQ2nliVWUjlyo78t2seuMwB6sV9otfFo9drcqXVwU3R_V1_FFfff2MsIru-94Qn-9-_gh-Vho_9zM88cdb6t8-qsO9tyigpUQWuul_sUJa8U61RV_twbWnzaXretYxlQhBmorphnWfVYhQnXF-h0zip_yYOXrj7jWQRryFeXMgXruxfxBS7ZISotR33XsleoJV228XjzmMXs-Wab36Uw4_nZ642IeiBW2bQ9FWS5es6-xfaFUFfmxdncozMkWfnnFiul-4XRcVQaoSi2vadkmcJeVZ9Qlcf78JOju86UXUroeZ5ZZZzFVepWMpf1IYquadI41p9pSjXBkhlfwWd2z7ykSca6oxvb7MoUYiz94cmeun_k760O0Rebw9hV6VzVnk-vVx4_tRkVwoyuUSRsQFMSdq7zrzh4nc2-ZZuMVm11yo_ekSdyp5Y1Z11JeonibzJmOObZiU5r0R4sZ_bloR7caSZe6nyJimy5ulrQpfQmbe4JItJ")
+				.add_header("Authorization", "Bearer ya29.c.c0AY_VpZgaiaxV_kIuHiFgyhIJT9RYVvaYKcZM3zFIPe5LVrPLg7G0_m_U89a16j6WKAykpt7OIqcthKvzcrw0p1S7Rpz2uTUpMJSnQ7dTf0PAbQWH3z4Hsvqzt735wup4OeWJvx8m17yJALOrqzh6V56KhY0ffgpbUbhB2fgYe_J4jFO5MLhbGCA-A_0oa8Gw3EtpBMWEmbrDGuyAiDzTdsHVYLBp30I3ZZdUsC7NV-KRs9HLjSUHrzoyvzPMVmVKPPO0j06vDvF2TQGqZUAzsPyH3RruOOHh8F1xgs8jiI7qGV7Op6qISlYhDXdqyPtzpcCCTEMtbODDa8P9wW3yttZQLqpn1YKIC8eTx1Ep7weXn3BN8hXXpHDy92tnguMRbGBfL397KUyZza3Rpn2Bk4_7jcvl_J17ew56y-fvkl9Qv3QWatyBrBIIBV820_4eFfW3X3V-p0b6OWlrpfnQgt_xSzp5c2sxb2YzShucefYZqsOwrY-fQ-oVhIWjsU_6Zu8_VZfkeQ0Szktu7zzV_bIYp1cV4hfcOamoojbkj5F90V7bY3xu4bc8wQXiM-Rok3w7OZytb6Y5dbh-Vl8W5-5rt8y41Fs_MehzznMnBfabWrrYZ4yyjxu_8kjOwYJfdVRM_o5FatO89x0ju7fdIg7OghR0FvrY41leuV9rbm9Zjf0fq7n8iZ427kQZWXWQJMzgsWYbBRM5287SuFt5r7wWZfxody5lrilopjlfV8dzkgtsafo48eo9SokBp9BOQzwV-8Qazsk6pyj4wygM99V0q7v53ge3q8x2qwlbgxr1uM6kW83m2WIW0iQXxozc9QwtMzzmxh4Mb_tgZthFt2nZZ7dqxZwkwjs8o_92atbyZtUerrQd1oe3lnVg2-caXM33y0iZ-Fj-wIJvrWe3jX4_uJ6061xobYR6uOQtQOt67M8ebr42eU_taum-ylQ2XYBSxJVI6W4gopze0Xid53IojWfgeupleoozZ4pQwrlgfbFct-squth")
 				.add_header("Content-Type", "application/json");
 		
 			let deadline = offchain::timestamp().add(Duration::from_millis(2_000));
@@ -319,8 +373,62 @@ pub mod pallet {
 		
 			Ok("text-folder-newest".to_string())
 		}
+
+		fn bucket_delete() -> Result<u16, http::Error> {
+			let deadline = offchain::timestamp().add(Duration::from_millis(2_000));
+
+			let bucket_delete = BucketDelete::<T>::try_get();
+
+			let value = match bucket_delete {
+				Ok(res) => res,
+				Err(_) => String::new(), 
+			};
+
+			log::info!("bucket name to be deleted: {:?}",value);
+			// let key = "AIzaSyBzfdSX2mR2P5_4PidvjH6zWqNON_t-eXE";
+
+			let url = format!("https://storage.googleapis.com/storage/v1/b/{}?key=AIzaSyDuOP9OCj8TWIFfRauNW6KEMQa9H332GhU", value.clone());
+
+			let json_body = r#"{}"#;
+
+			//send post request to file upload
+			let delete_requsest = http::Request::default().method(Method::Delete)
+            .url(url.as_str())
+            .add_header("Authorization", "Bearer ya29.c.c0AY_VpZhFDtmRP48p82xlqwJTgVKTaDC0QhHdRZrx3r_tK6r0aiGzMZhNJ-cKBEFpzgi5SpT3a3-FCXxSI4MTNcJgByaDx82GWBic9aGj7r5s7-zo1cmXm2QBWnmxWg5-5xHyrVWEX7ypaeOXfbazkeC-v4DLOTxodFgAMr8N3fmBhCBmeGqgaP21Sqa7is8s3ArGX3CeEIFvdZE4V3AuEoWT0e-wVOYPh5Gd9agQK_tvMcC1Mu_QLkvfiNCN4udbr-eK2yIcGtYZgDhuwxaS1tIzUIeA9KwlexDcE7t5fwIT-mJnzYS-YNE2qCd1yaIuMNJNoUP368hyi4dSIdT9sdmHywhVKADrmcL2mWEAGoQCWmSUTnMEOgE4wYdhiaNxlz5KJAL399Kk75Wl70Yjr5suIlpimsFy6dV-wvwV8j6qrXsk8XXggIbz2Vm-6lI_UscI5ROpvxcxJggJXvjlyo07tYzp2ilkfnQZwOg9g4yyiwzplU8YBXr1-x8BunO1_cX9p-iIWksZMOfUzSbp8J77MWFvx-W8OU1QIUa5Qi49aOmZfnX7uBVflltcvkBZiXc2hYFdsj9hmiRszd0665WS4210Bnpz9SRJ5jR2SBb9JII8JMhX1jhZyFhJhOpZ4qtkIXXcIa3-Oe6_3-in-ijjceUjoZw83aaYv9RtFWuyV7nzQe3Mybu8phFuOu2jcp0V7B-sVq_vOwn-rZn5JBJagtcbli-eYUahR0XRJcv1f_8MrMxvYyOJQU5lzuvxfXmo1b0i6J7rBz3008YIi02sV3gbmoiY-qrW44S7m6dZetVQVgRbI8sgqM7m4SobYbanMzd7v3Yd_tbWW_aYgdQ651m86RVcyt91ofbWv1_UmiV-mYfomgevm4Z0Y-sVSVcO4raUfx_cB20ap4qgFSu3jYbYFodtOsx_1WrVInRlaWZ8WqWyfZpuFFbVew2pBfFWzzebk_jBIk_8h3mZ_jFMjVV5wXya1msrfeiJdtptzn2viOQ9RUp");
+
+			let pending = delete_requsest
+			.deadline(deadline)
+			.body(vec![json_body])
+			.send()
+			.map_err(|_| http::Error::IoError)?;
+
+			// Wait for response 
+			let response = pending
+			.try_wait(deadline)
+			.map_err(|_| http::Error::DeadlineReached)??;
+
+			log::info!("Status code: {:#?}", response.code);
+
+			//check response is successfull
+			if response.code != 204 {
+				log::warn!("❌ ❌ ❌ ❌Unexpected status code when deleting bucket: {} ❌ ❌ ❌ ❌", response.code);
+				return Err(http::Error::Unknown)
+			}
+
+			//call signed transaction
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			signer.send_signed_transaction(|_account| {
+				Call::delete_bucket { bucketname: value.clone()}
+			});
+
+			
+			Ok(response.code)
+
+
+		}
 		
-		fn _file_upload() -> Result<(), http::Error> {
+		fn file_upload() -> Result<(), http::Error> {
 			//set deadline
 			let deadline = offchain::timestamp().add(Duration::from_millis(2_000));
 
@@ -328,17 +436,23 @@ pub mod pallet {
 
 			let value = match file_fetch {
 				Ok(res) => res,
-				Err(_) => Vec::new(), //retuen an empty vec
+				Err(_) => File{file: Vec::new(), file_name: "".to_string(), bucket_name: "".to_string() }, //retuen an empty vec
 			};
 
+			let file_name = value.file_name;
+			let file = value.file;
+			let bucket_name = value.bucket_name;
+
+			let url = format!("https://storage.googleapis.com/upload/storage/v1/b/{}/o?uploadType=media&name={}", bucket_name, file_name);
+
 			//send post request to file upload
-			let request = http::Request::post("https://storage.googleapis.com/upload/storage/v1/b/fcx-text-bucket1/o?uploadType=media&name=pic.jpeg", vec![value.clone()])
-			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZjH50kvwF1pDwMtucqZZqvbfd9BmcD8tnjk7QO7fhAxzLTKwBHtq_2pxMdWqXWpvOuPFrXDEpw1osAlMOZpAL_RBWOdlj3XJeonXrjgjB-yupc4N5DGwx_-0Ip8yuCEUjOu1xsV4ezcfCwPc03oKDfbcFYO1rStdjwXyyUmnUplL-YriIYQJIfU1nYV33K0EXWTCTmxb8raRNMOUNABOx0wk5nzsyRXJ7cIUO6rL557JhtLv2oEdMG_Jf-OPGtFHlNjTsMdWN7vRmEUxKuZ7c_Kn3cIGI6veV6M3ke7dLUhxe7BSwHqIXPxNaMoeCRHDfASB52mgIiDNpEE-b7JIwlIyYKhFXy32tCobZN1jhH6UsPRV8JDwc_nZ7uxTdoJDgL399DarQ1Wd9-yyUlt7xiuvWp4U5p3lJj8Ws0fsqXXI7aeu01Qlhz5cY7f2yJs_bp5oMwlk_0r01MgMVa4hI_-W5nB-hr8eOrw6MMq2wjerUslrIuOzkzsR8ln6zxlIxJ_yYOvuXRkBilR2nsZYIMzXWFph5k3Z7hzYa6whis27f7Y18txiYJ89tgaqS8iXOnOB_pyyecbFUdFpzIMySrId6c2-jx8XkO2tyfpOzM7yMz0WenIlfleRsXZo8v2MsqRdrxIYsn7rb-owuVB2RJ4luOQc0_vXcYXrUjx1hhbO6q_Ongz8vBa23itahiypzMF_byoIYmld80npR466tRVRyhlpUSvc56bV248y7bFQROWoZgMFMQVUM5pkFOB0Rx2f20Jv4nJcazQIjqhW8hyFamu6MMBdZebV1z2wWekhyXkidxY9sa01zhspbc-R2vXWBooimn4_WcjSOiVqX__zrveiJ3dMoXgU31Ofeagzw2UluakZ-BjbwzydQgaSrJ-O4U2aRI1e3y5xJJ-_3_nR5skslakQXz9zouqrsjQgccI12OfZwSeZi2boeXx9oxstYIzOOjf6vkp1y3rOXlUnj2y8SqIQxsImO7zdf_agMQgfU8")
+			let request = http::Request::post(url.as_str(), vec![file.clone()])
+			.add_header("Authorization", "Bearer ya29.c.c0AY_VpZiW7QTteGyxMKTLkr7i0LhiZgM_ExQLl1K-JRFC531Tnm4RMehdSHnKOHbCdxuAp63vnnftWRn3FJb9b0rt-qNo9q7LdGf2s9rxmOoG70A-ilb0VyzPe1K0m1xAq7LAtGvLDF8u0DT5aFf2Pp1VodKAYt0PlURP7ZSyyDxbJOoVtjCjT1c2CxoYNGtgSkERfVOw2Mye2jMM9RDlIgdvTL-V8M3D_lYcqnDDXJrwWpkzHWwAosC3F_ctTsJkijy2dH5ufmio49oyDJrRdQMgHXRjDRf1HveJlmNdjNoBjsvoQeKtOGd2JfXQDDe_oewQEVAC_YHNmL71tk5cy2OKbcKjSjg5vvGrWkFHo7Q_1TBaOp4dnqAsYlgziO0lxya3AgH399PbSqX25gbZ52vVopv0ecikhSZfV5V4goWxvYuhyxFX2-Q2rrXM9jgcSlShQjJuB85eBI6j2YgF73ardrrlVkQgwBmSUpShJ64ItiaheRM-f9tmkJk_vq1Vi0IszxqgcVsxSRsaYRuuaUJ7Q0Qrtci2v7cd1BUXcwlhzmgvsrxtXuuJm4Bz409VsV-Ylo08edn40k6J33gvY08q7bvFOwOgkorMt5FJbx8mtXM4hdSU10VnZgnuOd9SFiZQk-pvhgnt2nnzdQO1F96qlV08R1fv3cFmFw1Z_tjqi3xJbfWMZvunadYrcrdBtxvjk099vWbMYWUp1vkJcqX86i6o8F39uefppXg-qYYfh5jUUpxcOi01iuoOUrVrhMuSi209Xx9mpnzRjcMt3Mlx8mIdvlQnSJnrc2qM8raIXhi1Oqa-R5jluUqbW-lXgpFgrVBtXBY0fjZjntQj0wZxZnmwzfMaRs9aMO6gb1oFkvbz9rpvVZ9kzv6ftmqO7rctwJk-oY-_-YbYRRUZ5IiVoQxbfU84_U4Zn6JRX_-gn59ju2Byq75trio73S2y4F1_hSe_Yl_B8IiM0yubUi-Q5eJujJxgv5ts7hntI0ms_7OawgYdiBJ")
 			.add_header("Content-Type", "image/jpeg");
 
 			let pending = request
 			.deadline(deadline)
-			.body(vec![value.clone()])
+			.body(vec![file.clone()])
 			.send()
 			.map_err(|_| http::Error::IoError)?;
 
@@ -364,19 +478,24 @@ pub mod pallet {
 			//set deadline
 			let deadline = offchain::timestamp().add(Duration::from_millis(2_000));
 
-			// let file_fetch = FileSave::<T>::try_get();
+			let file_delete = FileDelete::<T>::try_get();
 
-			// let value = match file_fetch {
-			// 	Ok(res) => res,
-			// 	Err(_) => Vec::new(), //retuen an empty vec
-			// };
+			let value = match file_delete {
+				Ok(res) => res,
+				Err(_) => String::new(), //retuen an empty vec
+			};
+
+			let api_key = "AIzaSyBmwFlnn_aqaPBSkMntWe40qEn4yrY9BIQ";
+
+			let url = format!("https://storage.googleapis.com/storage/v1/b/fcx-text-bucket1/o/{}?key={}", value.clone(), api_key);
+
 
 			let json_body = r#"{}"#;
 
 			//send post request to file upload
 			let delete_requsest = http::Request::default().method(Method::Delete)
-            .url("https://storage.googleapis.com/storage/v1/b/fcx-text-bucket1/o/cat.jpeg?key=AIzaSyA6f3dyDiLIkizS6PB3UZY-a1CcDksVEAc")
-            .add_header("Authorization", "Bearer ya29.c.c0AY_VpZgXFFw88RhSsBxDP7A0I73sXVGeCMouArPdH6UDIHs2alJm9vs0hWOent_5XamcvpNTB1YJ8GWvWcHrfez6MumFMDbNrTvZk2P22EHNpv_Ino7FGwd377-fMweT5jqsdwEDaM7BdidmR8bU1vLqbMZy29PPLRRsVKSRCgvQ0fU6T0e4A6nfp1h7hhCs6foyPiXaRpC4xwcgI713Ayu0np3PgI53FxOUWcbor9vUABkP4cWdLdNBINKmeAA2h9VEYkkMh1oVXD4t1M6dJ7WP394IhahXy8pRBOO8609ZxRKeh48Ew4SXANMqRYWMjITe5OxBlAC8SjJEv7GrMGZLhchfoXppIeEJS9FHX5MOJqKJb9pMMcXWhnb9O95KACWNN397Pr53jJ-qVz8g-s0ikUVu-5msMYsMmZf4O91IyjalrmwX2zV2a550vfkUZmxXpOFi5ISFgQj00cWrQuWqtOb4sb7m_RsZan8O3Qweax6QpSsl9nbrfSbVs4p5W-tJ5aF4y4fWiW2_1mmScoqv224_yXBkuQVfY8s1UBs_5FjjIbduXMjueshuiiZS5Xkek9OuM0-vqOilqO3rlum_hsfursnfcycQvegexaf80JRvma32c_dQJSO23lsIu348W6dx0o0pybbvz7B5bQ6VWchM9fgghc90I9BWV2xSvMdXur16dd_8uh9xSotlo8qi888O0Vtahq5M1qY7XqbfscSuJgV7dlB0RwX72oWt9tgMFnpzntxtWrVRRXdqVWapYik8c1jm21-uptwBmZnQUmS4W1ZVqhkWBW6RXyMylQ3BwWvZ6o7Qlv-ilXuqkcg6qgpnm85FUVro_wvr-Foq8OyjUcyjnk4_a_Fsh4ydR3olbgtsruMrSlV5wmkUY1SaF3rs6ffz2cb1QI16yn_aib_vF8q19ekg2M5eRS6wjuMfhROy_eOctfj9rWuOka7b2nzxOUvUyRFlZUMFQSkmciVuaaY7-dBs4J8Vd6dZp9tlafpyqem")
+            .url(url.as_str())
+            .add_header("Authorization", "Bearer ya29.c.c0AY_VpZiW7QTteGyxMKTLkr7i0LhiZgM_ExQLl1K-JRFC531Tnm4RMehdSHnKOHbCdxuAp63vnnftWRn3FJb9b0rt-qNo9q7LdGf2s9rxmOoG70A-ilb0VyzPe1K0m1xAq7LAtGvLDF8u0DT5aFf2Pp1VodKAYt0PlURP7ZSyyDxbJOoVtjCjT1c2CxoYNGtgSkERfVOw2Mye2jMM9RDlIgdvTL-V8M3D_lYcqnDDXJrwWpkzHWwAosC3F_ctTsJkijy2dH5ufmio49oyDJrRdQMgHXRjDRf1HveJlmNdjNoBjsvoQeKtOGd2JfXQDDe_oewQEVAC_YHNmL71tk5cy2OKbcKjSjg5vvGrWkFHo7Q_1TBaOp4dnqAsYlgziO0lxya3AgH399PbSqX25gbZ52vVopv0ecikhSZfV5V4goWxvYuhyxFX2-Q2rrXM9jgcSlShQjJuB85eBI6j2YgF73ardrrlVkQgwBmSUpShJ64ItiaheRM-f9tmkJk_vq1Vi0IszxqgcVsxSRsaYRuuaUJ7Q0Qrtci2v7cd1BUXcwlhzmgvsrxtXuuJm4Bz409VsV-Ylo08edn40k6J33gvY08q7bvFOwOgkorMt5FJbx8mtXM4hdSU10VnZgnuOd9SFiZQk-pvhgnt2nnzdQO1F96qlV08R1fv3cFmFw1Z_tjqi3xJbfWMZvunadYrcrdBtxvjk099vWbMYWUp1vkJcqX86i6o8F39uefppXg-qYYfh5jUUpxcOi01iuoOUrVrhMuSi209Xx9mpnzRjcMt3Mlx8mIdvlQnSJnrc2qM8raIXhi1Oqa-R5jluUqbW-lXgpFgrVBtXBY0fjZjntQj0wZxZnmwzfMaRs9aMO6gb1oFkvbz9rpvVZ9kzv6ftmqO7rctwJk-oY-_-YbYRRUZ5IiVoQxbfU84_U4Zn6JRX_-gn59ju2Byq75trio73S2y4F1_hSe_Yl_B8IiM0yubUi-Q5eJujJxgv5ts7hntI0ms_7OawgYdiBJ")
             .add_header("Accept", "image/jpeg");
 
 
@@ -403,7 +522,7 @@ pub mod pallet {
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
 			signer.send_signed_transaction(|_account| {
-				Call::delete_file { }
+				Call::delete_file { filename: value.clone()}
 			});
 
 			
@@ -415,21 +534,21 @@ pub mod pallet {
 
 
 		/// A helper function to fetch the word and send signed transaction.
-		pub fn fetch_word_and_send_signed(word: String) {
-			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+		// pub fn fetch_word_and_send_signed(word: String) {
+		// 	let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
-			let results = signer.send_signed_transaction(|_account| {
-				Call::save_bucket_name { name: word.clone() }
-			});
+		// 	let results = signer.send_signed_transaction(|_account| {
+		// 		Call::save_bucket_name { name: word.clone() }
+		// 	});
 
-			for (acc, res) in &results {
-				match res {
-					Ok(()) => log::info!("{:?} Word fetch success: {}.", acc.id, word),
-					Err(e) =>
-						log::error!("{:?}: submit transaction failure. Reason: {:?}", acc.id, e),
-				}
-			}
-		}
+		// 	for (acc, res) in &results {
+		// 		match res {
+		// 			Ok(()) => log::info!("{:?} Word fetch success: {}.", acc.id, word),
+		// 			Err(e) =>
+		// 				log::error!("{:?}: submit transaction failure. Reason: {:?}", acc.id, e),
+		// 		}
+		// 	}
+		// }
 
 		pub fn fetch_folder_name_and_send_signed(word: String) {
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
