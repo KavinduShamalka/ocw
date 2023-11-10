@@ -58,6 +58,7 @@ pub mod pallet {
 	use sp_std::vec::Vec;
 	use sp_runtime::offchain::http::Method;
 	use scale_info::prelude::format;
+	// use frame_system::offchain::ForAll;
 	// const WORD_VEC_LEN: usize = 10;
 
 	#[pallet::pallet]
@@ -73,8 +74,10 @@ pub mod pallet {
 
 	//Bucket name Struct
 	#[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo, Debug)]
-	pub struct BucketS {
-		pub name: String,
+	#[scale_info(skip_type_params(T))]
+	pub struct Buckets<T: Config> {
+		pub account_id: T::AccountId,
+		pub bucket_name: String,
 	}
 
 	//Folder name structure
@@ -112,8 +115,8 @@ pub mod pallet {
 
 
 	#[pallet::storage]
-	#[pallet::getter(fn info)]
-	pub type BucketSave<T> = StorageValue<_, String>;
+	#[pallet::getter(fn bucket_save)]
+	pub(super) type BucketSave<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, String, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn fstore)]
@@ -178,13 +181,19 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn offchain_worker(block_number: BlockNumberFor<T>) {
+
+			// let signer = Signer::<T, T::AuthorityId>::all_accounts();
+        	// let account_id = Signer::<T, T::AuthorityId, ForAll>::account_id();
+
+			// let account_id: T::AccountId = StorageValue::<T, Value<T>>::get(b"account_id_key").unwrap_or_default();
+
 			log::info!("Hello from ⛓️‍💥 cloud offchain worker ⛓️‍💥.");
 			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
 
-			match Self::create_bucket_request() {
-				Ok(word) => log::info!("✅ 🤟🤟🤟 Bucket: {:?} created successfully 🤟🤟🤟 ✅", word),
-				Err(_) => log::info!("⚫⭕Error creating bucket⭕⚫"),
-			}
+			// match Self::create_bucket_request(account_id) {
+			// 	Ok(word) => log::info!("✅ 🤟🤟🤟 Bucket: {:?} created successfully 🤟🤟🤟 ✅", word),
+			// 	Err(_) => log::info!("⚫⭕Error creating bucket⭕⚫"),
+			// }
 
 			// match Self::create_folder_in_bucket() {
 			// 	Ok(word) => log::info!("📁✅ Folder: {:?} created successfully📁✅", word),
@@ -219,16 +228,17 @@ pub mod pallet {
 		//Store word
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn create_bucket(origin: OriginFor<T>, name: String) -> DispatchResult {
-			let sender = ensure_signed(origin)?;
+		pub fn create_bucket(origin: OriginFor<T>, bucket_name: String) -> DispatchResult {
+			let sender: T::AccountId = ensure_signed(origin)?;
 
 			// let new_name = BucketName { name };
 
-			<BucketSave<T>>::put(name);
+			//adding new_bucket into the bucket_name map
+			<BucketSave<T>>::insert(sender.clone() , bucket_name);
 
-			Self::deposit_event(Event::BucketCreated { name: sender });
+			Self::deposit_event(Event::BucketCreated { name: sender});
 
-			log::info!("Hello from bucket name save.");
+			log::info!("Hello from bucket save.");
 
 			Ok(())
 		}
@@ -328,11 +338,12 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		//fetch data from the url
-		fn create_bucket_request() -> Result<String, http::Error> {
+		fn _create_bucket_request(acc_id: T::AccountId) -> Result<String, http::Error> {
+			// let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
 			let url = "https://storage.googleapis.com/storage/v1/b?project=intern-storage-apis";
 
-			let bucket_store = BucketSave::<T>::try_get();
+			let bucket_store = BucketSave::<T>::try_get(acc_id);
 
 			let value = match bucket_store {
 				Ok(res) => res,
@@ -373,7 +384,7 @@ pub mod pallet {
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
 
 			signer.send_signed_transaction(|_account| {
-				Call::create_bucket { name: value.clone()}
+				Call::create_bucket { bucket_name: value.clone()}
 			});
 
     		Ok(value)

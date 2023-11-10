@@ -46,7 +46,7 @@ pub mod pallet {
 	use frame_support::sp_io::offchain;
 	use codec::alloc::string::ToString;
 	use sp_std::vec::Vec;
-	use sp_std::{collections::vec_deque::VecDeque, str};
+	use sp_std::str;
 	use frame_system::offchain::CreateSignedTransaction;
 	use frame_system::offchain::AppCrypto;
 	use frame_system::offchain::Signer;
@@ -73,17 +73,19 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn info)]
-	pub type WordSave<T> = StorageValue<_, Word>;
+	pub type WordSave<T> = StorageValue<_, String>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn store)]
-	pub type WordStore<T> = StorageValue<_, VecDeque<String>, ValueQuery>;
+	#[pallet::getter(fn wordstore)]
+	//pub type WordStore<T: Config> = StorageValue<_, VecDeque<String>, ValueQuery>;
+	pub type WordStore<T: Config> = StorageValue<_, String, ValueQuery>;
+
 
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		WordStored { word: T::AccountId },
+		WordStored { word: String, signer: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -107,12 +109,11 @@ pub mod pallet {
 			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
 			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
 
-			match Self::fetch_word() {
-				Ok(word) => Self::fetch_word_and_send_signed(word),
+			match Self::fetch_word_and_send_signed() {
+				Ok(()) => log::info!("Fetching word successfully....."),
 				Err(_) => log::info!("Error fetching word"),
-			}
 
-
+			};
 		}
 	}
 
@@ -124,17 +125,22 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
 		pub fn save_word(origin: OriginFor<T>, word: String) -> DispatchResult {
 
+			log::info!("Hello from word Save call func");
+
 			let sender = ensure_signed(origin)?;
 
-			let new_word = Word {
-				word,
-			};
+			log::info!("Signer id: {:?}",sender);
 
-			<WordSave<T>>::put(new_word);
+			// let new_word = Word {
+			// 	word,
+			// };
 
-			Self::deposit_event(Event::WordStored { word: sender });
+			// <WordSave<T>>::put(new_word);
 
-			log::info!("Hello from word Save.");
+			// Self::deposit_event(Event::WordStored { word: sender });
+
+			
+			Self::add_word(sender, word);
 
 			Ok(())
 
@@ -179,13 +185,19 @@ pub mod pallet {
 		}
 
 		/// A helper function to fetch the word and send signed transaction.
-		pub fn fetch_word_and_send_signed(word: String) {
+		pub fn fetch_word_and_send_signed() -> Result<(), &'static str> {
 		
 			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
+			let word = Self::fetch_word().map_err(|_| "Failed to fetch word")?;
 
 			let results = signer.send_signed_transaction(|_account| {
 				Call::save_word { word: word.clone() }
 			});
+
+			// let results = signer.send_signed_transaction(|_account| {
+			// 	Call::save_word { word: word.clone() }
+			// });
 
 			for (acc, res) in &results {
 				match res {
@@ -194,18 +206,23 @@ pub mod pallet {
 				}
 			}
 
+			Ok(())
+
 		}
 
-		
+		fn add_word(signer: T::AccountId, word: String) {
+			log::info!("Inside adding word to onchain function");
 
-		// fn saved_words(words: String) {
-		// 	WordStore::<T>::mutate(|word_save| {
-		// 		if word_save.len() == WORD_VEC_LEN {
-		// 			 let _ = word_save.pop_front();
-		// 		}
-		// 		word_save.push_back(words);
-		// 		log::info!("Save words: {:?}", word_save);
-		// 	})
-		// }
+			//add word into onchain
+			// <WordStore<T>>::put(word);
+
+			<WordStore<T>>::mutate(|words| {
+				words.push_str(&word);
+			});
+			
+			//call the event 
+			Self::deposit_event(Event::WordStored { word: word.clone(), signer: signer });
+		}
+
 	}
 }
