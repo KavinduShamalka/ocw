@@ -71,15 +71,19 @@ pub mod pallet {
 		pub word: String
 	}
 
-	#[pallet::storage]
-	#[pallet::getter(fn info)]
-	pub type WordSave<T> = StorageValue<_, String>;
+	// #[pallet::storage]
+	// #[pallet::getter(fn info)]
+	// pub type WordSave<T> = StorageValue<_, String>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn wordstore)]
 	//pub type WordStore<T: Config> = StorageValue<_, VecDeque<String>, ValueQuery>;
 	pub type WordStore<T: Config> = StorageValue<_, String, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn wordsave)]
+	//pub type WordStore<T: Config> = StorageValue<_, VecDeque<String>, ValueQuery>;
+	pub type WordSave<T: Config> = StorageMap<_,Twox64Concat ,T::AccountId, String>;
 
 
 	#[pallet::event]
@@ -155,13 +159,15 @@ pub mod pallet {
 
 		#[pallet::call_index(1)]
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
-		pub fn get_word_uploaded(_origin: OriginFor<T>) -> DispatchResult {
+		pub fn get_word_uploaded(origin: OriginFor<T>) -> DispatchResult {
 			log::info!("👋🤓 Hello from get word data upload call.....");
 	
-			// let signer = ensure_signed(origin)?;
+			let signer = ensure_signed(origin)?;
 	
 			//get the file value store onstorage
-			let data_uploaded = <WordStore<T>>::get();
+			//let data_uploaded = <WordStore<T>>::get();
+
+			let data_uploaded = <WordSave<T>>::get(signer);
 
 			log::info!("WORD: {:?}", data_uploaded);
 	
@@ -245,8 +251,11 @@ pub mod pallet {
 		fn add_word(signer: T::AccountId, word: String) {
 			log::info!("Inside adding word to onchain function");
 
+			
 			//add word into onchain
-			<WordStore<T>>::put(word.clone());
+			// <WordStore<T>>::set(word.clone());
+			<WordSave<T>>::set(signer.clone(), Some(word.clone()));
+
 
 			// <WordStore<T>>::mutate(|words| {
 			// 	words.push_str(&word);
