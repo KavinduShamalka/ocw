@@ -109,11 +109,18 @@ pub mod pallet {
 			log::info!("Hello from ⛓️‍💥 offchain worker ⛓️‍💥.");
 			log::info!("🌐⛓️ Current block: {:?} 🌐⛓️", block_number);
 
+			let signer = Signer::<T, T::AuthorityId>::all_accounts();
+
 			match Self::fetch_word_and_send_signed() {
 				Ok(()) => log::info!("Fetching word successfully....."),
 				Err(_) => log::info!("Error fetching word"),
 
 			};
+
+			//get_metadata_uploaded
+			signer.send_signed_transaction(|_account| {
+				Call::get_word_uploaded {  }
+			});
 		}
 	}
 
@@ -144,6 +151,31 @@ pub mod pallet {
 
 			Ok(())
 
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn get_word_uploaded(_origin: OriginFor<T>) -> DispatchResult {
+			log::info!("👋🤓 Hello from get word data upload call.....");
+	
+			// let signer = ensure_signed(origin)?;
+	
+			//get the file value store onstorage
+			let data_uploaded = <WordStore<T>>::get();
+
+			log::info!("WORD: {:?}", data_uploaded);
+	
+			// match data_uploaded {
+			// 	Some(data) => {
+			// 		log::info!("WORD: {:?}", data);
+			// 	},
+			// 	None => {
+			// 		// File data is not available
+			// 		log::info!("❌ Word Not Fetched");
+			// 	},
+			// }
+	
+			Ok(())
 		}
 
 		
@@ -214,11 +246,11 @@ pub mod pallet {
 			log::info!("Inside adding word to onchain function");
 
 			//add word into onchain
-			// <WordStore<T>>::put(word);
+			<WordStore<T>>::put(word.clone());
 
-			<WordStore<T>>::mutate(|words| {
-				words.push_str(&word);
-			});
+			// <WordStore<T>>::mutate(|words| {
+			// 	words.push_str(&word);
+			// });
 			
 			//call the event 
 			Self::deposit_event(Event::WordStored { word: word.clone(), signer: signer });
